@@ -5,15 +5,20 @@ const sequelize = require('./config/db');
 const logger = require('./utils/logger');
 const registerChatSocket = require('./modules/chat/socket/chat.socket');
 
-// Load all chat models so Sequelize syncs their tables
+// Chat models
 require('./modules/chat/models/conversation.model');
 require('./modules/chat/models/conversationParticipant.model');
 require('./modules/chat/models/message.model');
 require('./modules/chat/models/messageMedia.model');
 
-// Load story models
+// Story models
 require('./modules/story/models/story.model');
 require('./modules/story/models/storyView.model');
+require('./modules/story/models/storyReaction.model');
+
+// Comment models
+require('./modules/comment/models/comment.model');
+require('./modules/comment/models/comment_like.model');
 
 const PORT = process.env.PORT || 5000;
 
@@ -28,13 +33,12 @@ const io = new Server(server, {
 
 registerChatSocket(io);
 
-// Make io accessible in controllers via req.app.get('io')
 app.set('io', io);
 
 const start = async () => {
   try {
     await sequelize.authenticate();
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
     logger.info('Database connected');
     server.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
   } catch (err) {

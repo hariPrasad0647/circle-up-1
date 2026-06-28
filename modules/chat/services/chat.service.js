@@ -32,7 +32,6 @@ const canMessageUser = async (senderId, recipientId) => {
 };
 
 const findOrCreateConversation = async (userAId, userBId) => {
-  // Find existing DM conversation between the two users
   const existing = await sequelize.query(
     `SELECT cp1.conversationId FROM conversation_participants cp1
      JOIN conversation_participants cp2 ON cp1.conversationId = cp2.conversationId
@@ -56,8 +55,23 @@ const findOrCreateConversation = async (userAId, userBId) => {
   return conversation;
 };
 
-const saveMessage = async ({ conversationId, senderId, content, mediaItems = [] }) => {
-  const message = await Message.create({ conversationId, senderId, content });
+const saveMessage = async ({
+  conversationId,
+  senderId,
+  content,
+  mediaItems = [],
+  messageType = 'text',
+  storyId = null,
+  reactionEmoji = null,
+}) => {
+  const message = await Message.create({
+    conversationId,
+    senderId,
+    content,
+    messageType,
+    storyId,
+    reactionEmoji,
+  });
 
   if (mediaItems.length > 0) {
     await MessageMedia.bulkCreate(
@@ -73,8 +87,30 @@ const saveMessage = async ({ conversationId, senderId, content, mediaItems = [] 
   });
 };
 
+const enrichWithStory = async (messages) => {
+  const Story = require('../../story/models/story.model');
+  return Promise.all(
+    messages.map(async (msg) => {
+      const json = msg.toJSON ? msg.toJSON() : msg;
+      if (json.messageType === 'story_reaction' && json.storyId) {
+        const story = await Story.findByPk(json.storyId, {
+          attributes: ['id', 'mediaUrl', 'mediaType', 'expiresAt'],
+        });
+        json.story = story
+          ? {
+              id: story.id,
+              mediaUrl: story.mediaUrl,
+              mediaType: story.mediaType,
+              isExpired: new Date() > story.expiresAt,
+            }
+          : null;
+      }
+      return json;
+    })
+  );
+};
+
 const getConversations = async (userId) => {
-  // Step 1: get all conversation IDs this user is in
   const myParticipations = await ConversationParticipant.findAll({
     where: { userId },
     attributes: ['conversationId', 'lastReadAt'],
@@ -87,7 +123,6 @@ const getConversations = async (userId) => {
     myParticipations.map((p) => [p.conversationId, p.lastReadAt])
   );
 
-  // Step 2: get the other participant's user info for each conversation
   const otherParticipants = await ConversationParticipant.findAll({
     where: { conversationId: { [Op.in]: conversationIds }, userId: { [Op.ne]: userId } },
     include: [{ model: User, as: 'user', attributes: ['id', 'username', 'profileImage', 'fullName'] }],
@@ -97,7 +132,6 @@ const getConversations = async (userId) => {
     otherParticipants.map((p) => [p.conversationId, p.user])
   );
 
-  // Step 3: get the latest message per conversation
   const allMessages = await Message.findAll({
     where: { conversationId: { [Op.in]: conversationIds } },
     include: [{ model: MessageMedia, as: 'media' }],
@@ -117,7 +151,7 @@ const getConversations = async (userId) => {
       const lastMessage = raw
         ? raw.isDeleted
           ? { ...raw.toJSON(), content: null, media: [] }
-          : raw
+          : raw.toJSON()
         : null;
       return {
         conversationId: convId,
@@ -152,7 +186,8 @@ const getMessages = async (conversationId, userId, { limit = 30, before } = {}) 
     limit,
   });
 
-  return messages.reverse();
+  const ordered = messages.reverse();
+  return enrichWithStory(ordered);
 };
 
 const markAsRead = async (conversationId, userId) => {

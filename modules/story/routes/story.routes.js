@@ -9,6 +9,8 @@ const {
   viewStoryController,
   getStoryViewersController,
   deleteStoryController,
+  reactToStoryController,
+  removeReactionController,
 } = require('../controllers/story.controller');
 
 router.use(auth);
@@ -19,5 +21,7 @@ router.get('/me', getMyStoriesController);
 router.get('/:id', viewStoryController);
 router.get('/:id/viewers', getStoryViewersController);
 router.delete('/:id', deleteStoryController);
+router.post('/:id/react', reactToStoryController);
+router.delete('/:id/react', removeReactionController);
 
 module.exports = router;

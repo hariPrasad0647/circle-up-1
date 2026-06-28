@@ -1305,7 +1305,7 @@ Fetches a single story. Automatically records a view (unless viewer is the autho
 
 ### GET `/api/stories/:id/viewers`
 
-Returns a list of users who viewed the story. Only the story owner can access this. Returns 403 otherwise.
+Returns viewers of the story with their reaction emoji (if any). Only the story owner can access this. Returns 403 otherwise.
 
 **Response 200**
 ```json
@@ -1318,11 +1318,14 @@ Returns a list of users who viewed the story. Only the story owner can access th
       "username": "alice",
       "fullName": "Alice Smith",
       "profileImage": null,
-      "viewedAt": "2024-01-15T11:00:00.000Z"
+      "viewedAt": "2024-01-15T11:00:00.000Z",
+      "reaction": "❤️"
     }
   ]
 }
 ```
+
+> `reaction` is `null` if the viewer did not react.
 
 ---
 
@@ -1340,17 +1343,318 @@ Deletes a story. Only the story owner can delete it.
 
 ---
 
+### POST `/api/stories/:id/react`
+
+React to a story with an emoji. Creates a `story_reaction` message in the DM conversation with the story author (exactly like Instagram). One reaction per user per story — calling again with a different emoji updates it.
+
+Cannot react to your own story. Story must be active (not expired).
+
+**Request**
+```json
+{
+  "emoji": "❤️"
+}
+```
+
+**Response 201** (new reaction)
+```json
+{
+  "success": true,
+  "message": "Reaction sent",
+  "data": {
+    "created": true,
+    "emoji": "❤️",
+    "storyId": "uuid",
+    "conversationId": "uuid",
+    "message": {
+      "id": "uuid",
+      "senderId": "uuid",
+      "content": null,
+      "messageType": "story_reaction",
+      "storyId": "uuid",
+      "reactionEmoji": "❤️",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "sender": {
+        "id": "uuid",
+        "username": "john_doe",
+        "profileImage": null
+      },
+      "media": []
+    }
+  }
+}
+```
+
+**Response 200** (updated existing reaction)
+```json
+{
+  "success": true,
+  "message": "Reaction updated",
+  "data": {
+    "updated": true,
+    "emoji": "😂",
+    "storyId": "uuid"
+  }
+}
+```
+
+---
+
+### DELETE `/api/stories/:id/react`
+
+Removes the authenticated user's reaction from a story. Also soft-deletes the associated DM message.
+
+**Response 200**
+```json
+{
+  "success": true,
+  "message": "Reaction removed"
+}
+```
+
+---
+
+## Module 8 — Comments `/api/posts/:id/comments` and `/api/reels/:id/comments`
+
+All endpoints require authentication. Comments are threaded one level deep: top-level comments can have replies, but replies cannot be replied to.
+
+Post and reel responses now include `commentCount` (top-level comments only).
+
+---
+
+### GET `/api/posts/:id/comments` or `/api/reels/:id/comments`
+
+Returns paginated top-level comments, newest first. Each comment includes `replyCount` (number of replies).
+
+**Query params**
+
+| Param | Default |
+|-------|---------|
+| page | 1 |
+| limit | 20 |
+
+**Response 200**
+```json
+{
+  "success": true,
+  "message": "Comments fetched",
+  "data": {
+    "comments": [
+      {
+        "id": "uuid",
+        "text": "Great post!",
+        "isDeleted": false,
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "parentId": null,
+        "author": {
+          "id": "uuid",
+          "username": "alice",
+          "profileImage": null
+        },
+        "likeCount": 3,
+        "hasLiked": false,
+        "replyCount": 2
+      }
+    ],
+    "total": 42,
+    "page": 1,
+    "limit": 20
+  }
+}
+```
+
+> Deleted comments return `text: null, author: null, isDeleted: true` so threads stay intact.
+
+---
+
+### POST `/api/posts/:id/comments` or `/api/reels/:id/comments`
+
+Adds a top-level comment.
+
+**Request**
+```json
+{
+  "text": "Great post!"
+}
+```
+
+| Field | Type | Rules |
+|-------|------|-------|
+| text | string | required, max 1000 chars |
+
+**Response 201**
+```json
+{
+  "success": true,
+  "message": "Comment added",
+  "data": {
+    "id": "uuid",
+    "text": "Great post!",
+    "isDeleted": false,
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "parentId": null,
+    "author": {
+      "id": "uuid",
+      "username": "john_doe",
+      "profileImage": null
+    },
+    "likeCount": 0,
+    "hasLiked": false,
+    "replyCount": 0
+  }
+}
+```
+
+---
+
+### GET `/api/posts/:id/comments/:commentId/replies` or `/api/reels/:id/comments/:commentId/replies`
+
+Returns paginated replies to a comment, oldest first.
+
+**Query params**: `page` (default 1), `limit` (default 20)
+
+**Response 200**
+```json
+{
+  "success": true,
+  "message": "Replies fetched",
+  "data": {
+    "replies": [
+      {
+        "id": "uuid",
+        "text": "Totally agree!",
+        "isDeleted": false,
+        "createdAt": "2024-01-15T11:00:00.000Z",
+        "parentId": "parent-comment-uuid",
+        "author": {
+          "id": "uuid",
+          "username": "bob",
+          "profileImage": null
+        },
+        "likeCount": 1,
+        "hasLiked": false,
+        "replyCount": 0
+      }
+    ],
+    "total": 2,
+    "page": 1,
+    "limit": 20
+  }
+}
+```
+
+---
+
+### POST `/api/posts/:id/comments/:commentId/replies` or `/api/reels/:id/comments/:commentId/replies`
+
+Adds a reply to a comment. Cannot reply to a reply (max one level of nesting).
+
+**Request**
+```json
+{
+  "text": "Totally agree!"
+}
+```
+
+**Response 201**
+```json
+{
+  "success": true,
+  "message": "Reply added",
+  "data": {
+    "id": "uuid",
+    "text": "Totally agree!",
+    "isDeleted": false,
+    "createdAt": "2024-01-15T11:00:00.000Z",
+    "parentId": "parent-comment-uuid",
+    "author": {
+      "id": "uuid",
+      "username": "john_doe",
+      "profileImage": null
+    },
+    "likeCount": 0,
+    "hasLiked": false,
+    "replyCount": 0
+  }
+}
+```
+
+---
+
+### DELETE `/api/posts/:id/comments/:commentId` or `/api/reels/:id/comments/:commentId`
+
+Soft-deletes a comment. Only the comment author can delete their own comment.
+
+**Response 200**
+```json
+{
+  "success": true,
+  "message": "Comment deleted"
+}
+```
+
+---
+
+### POST `/api/posts/:id/comments/:commentId/like` or `/api/reels/:id/comments/:commentId/like`
+
+Toggles a like on a comment (works on both top-level comments and replies).
+
+**Response 200**
+```json
+{
+  "success": true,
+  "message": "Comment liked",
+  "data": {
+    "liked": true,
+    "likeCount": 4
+  }
+}
+```
+
+`message` is `"Comment liked"` or `"Comment unliked"`.
+
+---
+
 ## Real-time — Socket.IO
 
 | Event | Direction | Payload |
 |-------|-----------|---------|
-| `chat:message` | Server → Client | Full message object (same shape as `POST /api/chat/send` response `data.message`) |
+| `chat:message` | Server → Client | Full message object — for story reactions this includes `messageType: "story_reaction"`, `reactionEmoji`, `storyId`, and a `story` object |
 
 Connect with the access token:
 ```js
 const socket = io("https://<your-domain>", {
   auth: { token: accessToken }
 });
+```
+
+**Story reaction message shape** (received via `chat:message` event):
+```json
+{
+  "conversationId": "uuid",
+  "message": {
+    "id": "uuid",
+    "senderId": "uuid",
+    "content": null,
+    "messageType": "story_reaction",
+    "storyId": "uuid",
+    "reactionEmoji": "❤️",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "isDeleted": false,
+    "sender": {
+      "id": "uuid",
+      "username": "alice",
+      "profileImage": null
+    },
+    "media": [],
+    "story": {
+      "id": "uuid",
+      "mediaUrl": "https://cdn.example.com/stories/story1.jpg",
+      "mediaType": "image",
+      "isExpired": false
+    }
+  }
+}
 ```
 
 ---
@@ -1365,5 +1669,9 @@ const socket = io("https://<your-domain>", {
 | Pagination | Use `page` + `limit` query params; check `hasMore` (feed) or compare `total` vs current offset |
 | CDN URLs | `profileImage`, `media`, `videoUrl`, `thumbnailUrl`, `mediaUrl` fields are all absolute CDN URLs; use directly in `<img>`/`<video>` |
 | Private accounts | Respect `isPrivate` + `followStatus` — private account content is gated behind a follow relationship |
-| Toggle endpoints | Like and Save are toggles — call the same endpoint to undo |
+| Toggle endpoints | Like/Save/CommentLike are toggles — call the same endpoint to undo |
+| Story reactions | Displayed in DM conversations as `messageType: "story_reaction"` — render the `story.mediaUrl` thumbnail + `reactionEmoji` |
+| Deleted comments | Show "[deleted]" in UI — `text` and `author` are `null` when `isDeleted: true`, but the record stays so replies aren't orphaned |
+| Comment threading | Max one level deep — replies cannot be replied to (400 error if attempted) |
+| commentCount | Post and reel GET responses now include `commentCount` (top-level, non-deleted comments only) |
 | Search & Notifications | Not yet implemented |

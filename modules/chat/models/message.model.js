@@ -28,6 +28,19 @@ const Message = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    messageType: {
+      type: DataTypes.ENUM('text', 'story_reaction'),
+      allowNull: false,
+      defaultValue: 'text',
+    },
+    storyId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    reactionEmoji: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
     isDeleted: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

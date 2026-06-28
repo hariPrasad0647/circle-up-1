@@ -3,6 +3,7 @@ const Save = require('../models/bookmark.model');
 const Share = require('../models/share.model');
 const Post = require('../models/post.model');
 const Reel = require('../../reel/models/reel.model');
+const Comment = require('../../comment/models/comment.model');
 
 const findContent = async (contentType, contentId) => {
   const model = contentType === 'post' ? Post : Reel;
@@ -54,10 +55,11 @@ const shareContent = async (userId, contentType, contentId) => {
 // ── Stats (used by GET post/reel endpoints) ───────────────────────────────────
 
 const getInteractionStats = async (contentType, contentId, viewerId = null) => {
-  const [likeCount, saveCount, shareCount, likeRow, saveRow] = await Promise.all([
+  const [likeCount, saveCount, shareCount, commentCount, likeRow, saveRow] = await Promise.all([
     Like.count({ where: { contentType, contentId } }),
     Save.count({ where: { contentType, contentId } }),
     Share.count({ where: { contentType, contentId } }),
+    Comment.count({ where: { contentType, contentId, parentId: null, isDeleted: false } }),
     viewerId ? Like.findOne({ where: { userId: viewerId, contentType, contentId } }) : null,
     viewerId ? Save.findOne({ where: { userId: viewerId, contentType, contentId } }) : null,
   ]);
@@ -65,6 +67,7 @@ const getInteractionStats = async (contentType, contentId, viewerId = null) => {
     likeCount,
     saveCount,
     shareCount,
+    commentCount,
     hasLiked: !!likeRow,
     hasSaved: !!saveRow,
   };

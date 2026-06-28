@@ -36,6 +36,7 @@ const formatPost = (post, stats = {}) => ({
   likeCount: stats.likeCount ?? 0,
   saveCount: stats.saveCount ?? 0,
   shareCount: stats.shareCount ?? 0,
+  commentCount: stats.commentCount ?? 0,
   hasLiked: stats.hasLiked ?? false,
   hasSaved: stats.hasSaved ?? false,
 });

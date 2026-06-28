@@ -288,7 +288,7 @@
     },
     {
       "name": "Stories",
-      "description": "Instagram-style stories — expire after 24 hours.\n\nFeed order: users with unseen stories appear first, then by most recent story.\nViewing a story via GET /api/stories/:id automatically marks it as seen.\nOnly the story author can call the /viewers endpoint.",
+      "description": "Instagram-style stories — expire after 24 hours.\n\nFeed order: users with unseen stories appear first, then by most recent story.\nViewing a story via GET /api/stories/:id automatically marks it as seen.\nOnly the story author can call the /viewers endpoint.\n\nReactions: POST /api/stories/:id/react sends an emoji reaction that appears in the DM conversation with the story author (exactly like Instagram). One reaction per user per story — calling again updates the emoji.",
       "item": [
         {
           "name": "Post Story",
@@ -335,7 +335,7 @@
           }
         },
         {
-          "name": "Get Story Viewers",
+          "name": "Get Story Viewers & Reactions",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -359,11 +359,45 @@
               "variable": [{ "key": "id", "value": "STORY_ID" }]
             }
           }
+        },
+        {
+          "name": "React to Story",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stories/:id/react",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","stories",":id","react"],
+              "variable": [{ "key": "id", "value": "STORY_ID" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emoji\": \"❤️\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Story Reaction",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/stories/:id/react",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","stories",":id","react"],
+              "variable": [{ "key": "id", "value": "STORY_ID" }]
+            }
+          }
         }
       ]
     },
     {
       "name": "Posts",
+      "description": "Create and interact with image posts.\n\nComments are threaded one level deep: top-level comments and their replies.\nCalling like on a comment toggles it.",
       "item": [
         {
           "name": "Create Post",
@@ -412,11 +446,119 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": { "raw": "{{baseUrl}}/api/posts/:id/share", "host": ["{{baseUrl}}"], "path": ["api","posts",":id","share"], "variable": [{ "key": "id", "value": "POST_ID" }] }
           }
+        },
+        {
+          "name": "Get Comments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/:id/comments?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","posts",":id","comments"],
+              "variable": [{ "key": "id", "value": "POST_ID" }],
+              "query": [
+                { "key": "page",  "value": "1",  "description": "Page number (default 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (default 20)" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/posts/:id/comments", "host": ["{{baseUrl}}"], "path": ["api","posts",":id","comments"], "variable": [{ "key": "id", "value": "POST_ID" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Great post!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Replies",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/:id/comments/:commentId/replies?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","posts",":id","comments",":commentId","replies"],
+              "variable": [
+                { "key": "id",        "value": "POST_ID" },
+                { "key": "commentId", "value": "COMMENT_ID" }
+              ],
+              "query": [
+                { "key": "page",  "value": "1",  "description": "Page number (default 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (default 20)" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reply to Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/:id/comments/:commentId/replies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","posts",":id","comments",":commentId","replies"],
+              "variable": [
+                { "key": "id",        "value": "POST_ID" },
+                { "key": "commentId", "value": "COMMENT_ID" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Totally agree!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/:id/comments/:commentId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","posts",":id","comments",":commentId"],
+              "variable": [
+                { "key": "id",        "value": "POST_ID" },
+                { "key": "commentId", "value": "COMMENT_ID" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Like / Unlike Comment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/posts/:id/comments/:commentId/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","posts",":id","comments",":commentId","like"],
+              "variable": [
+                { "key": "id",        "value": "POST_ID" },
+                { "key": "commentId", "value": "COMMENT_ID" }
+              ]
+            }
+          }
         }
       ]
     },
     {
       "name": "Reels",
+      "description": "Create and interact with short video reels.\n\nComments follow the same threaded structure as Posts.",
       "item": [
         {
           "name": "Create Reel",
@@ -466,12 +608,119 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": { "raw": "{{baseUrl}}/api/reels/:id/share", "host": ["{{baseUrl}}"], "path": ["api","reels",":id","share"], "variable": [{ "key": "id", "value": "REEL_ID" }] }
           }
+        },
+        {
+          "name": "Get Comments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/reels/:id/comments?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","reels",":id","comments"],
+              "variable": [{ "key": "id", "value": "REEL_ID" }],
+              "query": [
+                { "key": "page",  "value": "1",  "description": "Page number (default 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (default 20)" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/reels/:id/comments", "host": ["{{baseUrl}}"], "path": ["api","reels",":id","comments"], "variable": [{ "key": "id", "value": "REEL_ID" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"This is amazing!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Replies",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/reels/:id/comments/:commentId/replies?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","reels",":id","comments",":commentId","replies"],
+              "variable": [
+                { "key": "id",        "value": "REEL_ID" },
+                { "key": "commentId", "value": "COMMENT_ID" }
+              ],
+              "query": [
+                { "key": "page",  "value": "1",  "description": "Page number (default 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (default 20)" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reply to Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reels/:id/comments/:commentId/replies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","reels",":id","comments",":commentId","replies"],
+              "variable": [
+                { "key": "id",        "value": "REEL_ID" },
+                { "key": "commentId", "value": "COMMENT_ID" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Agreed!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/reels/:id/comments/:commentId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","reels",":id","comments",":commentId"],
+              "variable": [
+                { "key": "id",        "value": "REEL_ID" },
+                { "key": "commentId", "value": "COMMENT_ID" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Like / Unlike Comment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/reels/:id/comments/:commentId/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","reels",":id","comments",":commentId","like"],
+              "variable": [
+                { "key": "id",        "value": "REEL_ID" },
+                { "key": "commentId", "value": "COMMENT_ID" }
+              ]
+            }
+          }
         }
       ]
     },
     {
       "name": "Chat",
-      "description": "Direct messaging — REST endpoints for history, and Socket.io for real-time.\n\n── Socket.io connection ───────────────────────────────────────────\nio('{{baseUrl}}', { auth: { token: '<JWT>' } })\n\nClient → Server:\n  chat:send        { recipientId, content?, media?: [{ mediaUrl, mediaType, thumbnailUrl? }] }\n  chat:typing      { recipientId }\n  chat:stop_typing { recipientId }\n  chat:read        { conversationId, senderId }\n\nServer → Client:\n  chat:message     { conversationId, message }\n  chat:typing      { senderId }\n  chat:stop_typing { senderId }\n  chat:read        { conversationId, readBy }\n  chat:error       { message }\n\nMedia flow: POST /api/chat/upload → { mediaUrl, mediaType } → pass in media[] of chat:send\nPrivacy: cannot message a private account unless you are mutual followers.",
+      "description": "Direct messaging — REST endpoints for history, and Socket.io for real-time.\n\n── Socket.io connection ───────────────────────────────────────────\nio('{{baseUrl}}', { auth: { token: '<JWT>' } })\n\nClient → Server:\n  chat:send        { recipientId, content?, media?: [{ mediaUrl, mediaType, thumbnailUrl? }] }\n  chat:typing      { recipientId }\n  chat:stop_typing { recipientId }\n  chat:read        { conversationId, senderId }\n\nServer → Client:\n  chat:message     { conversationId, message }\n  chat:typing      { senderId }\n  chat:stop_typing { senderId }\n  chat:read        { conversationId, readBy }\n  chat:error       { message }\n\nStory reactions: when a user reacts to a story, a story_reaction message is automatically sent to the DM conversation. These messages have messageType: 'story_reaction', reactionEmoji, storyId, and a story object with mediaUrl/mediaType/isExpired.\n\nMedia flow: POST /api/chat/upload → { mediaUrl, mediaType } → pass in media[] of chat:send\nPrivacy: cannot message a private account unless you are mutual followers.",
       "item": [
         {
           "name": "Send Message",

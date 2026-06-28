@@ -61,6 +61,33 @@ const deleteStoryController = async (req, res, next) => {
   }
 };
 
+const reactToStoryController = async (req, res, next) => {
+  try {
+    const { emoji } = req.body;
+    if (!emoji || typeof emoji !== 'string' || emoji.trim().length === 0) {
+      return error(res, 400, 'emoji is required');
+    }
+    const io = req.app.get('io');
+    const result = await storyService.reactToStory(req.params.id, req.user.id, emoji.trim(), io);
+    if (result.notFound) return error(res, 404, 'Story not found or has expired');
+    if (result.forbidden) return error(res, 403, 'You cannot react to your own story');
+    const message = result.created ? 'Reaction sent' : 'Reaction updated';
+    return success(res, result.created ? 201 : 200, message, result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const removeReactionController = async (req, res, next) => {
+  try {
+    const result = await storyService.removeReaction(req.params.id, req.user.id);
+    if (result.notFound) return error(res, 404, 'Reaction not found');
+    return success(res, 200, 'Reaction removed');
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createStoryController,
   getStoryFeedController,
@@ -68,4 +95,6 @@ module.exports = {
   viewStoryController,
   getStoryViewersController,
   deleteStoryController,
+  reactToStoryController,
+  removeReactionController,
 };
