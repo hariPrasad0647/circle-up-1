@@ -20,6 +20,9 @@ const {
   getSuggestionsController,
   getSavedPostsController,
   getSavedReelsController,
+  getUserProfileController,
+  getUserPostsController,
+  getUserReelsController,
 } = require('../controllers/user.controller');
 
 // PATCH /api/users/profile
@@ -59,6 +62,18 @@ router.get('/suggestions', auth, getSuggestionsController);
 // ── Saved content ─────────────────────────────────────────────────────────────
 router.get('/saved/posts', auth, getSavedPostsController);
 router.get('/saved/reels', auth, getSavedReelsController);
+
+// ── Public profile viewing ────────────────────────────────────────────────────
+// These must stay above /:id/follow to prevent Express matching 'posts'/'reels' as :id
+
+// GET /api/users/:id
+router.get('/:id', auth, getUserProfileController);
+
+// GET /api/users/:id/posts
+router.get('/:id/posts', auth, getUserPostsController);
+
+// GET /api/users/:id/reels
+router.get('/:id/reels', auth, getUserReelsController);
 
 // ── Follow / unfollow a user ──────────────────────────────────────────────────
 

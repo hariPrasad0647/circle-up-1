@@ -195,6 +195,53 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": { "raw": "{{baseUrl}}/api/users/:id/follow", "host": ["{{baseUrl}}"], "path": ["api","users",":id","follow"], "variable": [{ "key": "id", "value": "USER_ID" }] }
           }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","users",":id"],
+              "variable": [{ "key": "id", "value": "USER_ID" }]
+            }
+          }
+        },
+        {
+          "name": "Get User Posts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id/posts?page=1&limit=12",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","users",":id","posts"],
+              "variable": [{ "key": "id", "value": "USER_ID" }],
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "12" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Reels",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id/reels?page=1&limit=12",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","users",":id","reels"],
+              "variable": [{ "key": "id", "value": "USER_ID" }],
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "12" }
+              ]
+            }
+          }
         }
       ]
     },

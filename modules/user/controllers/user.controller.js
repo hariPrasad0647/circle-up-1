@@ -11,6 +11,9 @@ const {
   getFollowing,
   getFriends,
   getSuggestions,
+  getUserProfile,
+  getUserPosts,
+  getUserReels,
 } = require('../services/user.service');
 const { getSavedPosts, getSavedReels } = require('../../post/services/interaction.service');
 const { success, error } = require('../../../utils/response');
@@ -167,6 +170,46 @@ const getSavedReelsController = async (req, res, next) => {
   }
 };
 
+const getUserProfileController = async (req, res, next) => {
+  try {
+    const profile = await getUserProfile(req.user.id, req.params.id);
+    return success(res, 200, 'Profile fetched', profile);
+  } catch (err) {
+    if (err.status) return error(res, err.status, err.message);
+    next(err);
+  }
+};
+
+const getUserPostsController = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const result = await getUserPosts(req.user.id, req.params.id, { page, limit });
+    if (!result.canView) {
+      return error(res, 403, 'This account is private');
+    }
+    return success(res, 200, 'Posts fetched', result);
+  } catch (err) {
+    if (err.status) return error(res, err.status, err.message);
+    next(err);
+  }
+};
+
+const getUserReelsController = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const result = await getUserReels(req.user.id, req.params.id, { page, limit });
+    if (!result.canView) {
+      return error(res, 403, 'This account is private');
+    }
+    return success(res, 200, 'Reels fetched', result);
+  } catch (err) {
+    if (err.status) return error(res, err.status, err.message);
+    next(err);
+  }
+};
+
 module.exports = {
   updateProfileController,
   saveInterestsController,
@@ -182,4 +225,7 @@ module.exports = {
   getSuggestionsController,
   getSavedPostsController,
   getSavedReelsController,
+  getUserProfileController,
+  getUserPostsController,
+  getUserReelsController,
 };

@@ -3,6 +3,14 @@ const User = require('../models/user.model');
 const Interest = require('../models/interest.model');
 const Follow = require('../models/follow.model');
 const { deleteFromBunny } = require('../../../config/bunny');
+const Post = require('../../post/models/post.model');
+const PostMedia = require('../../post/models/post_media.model');
+const Hashtag = require('../../post/models/hashtag.model');
+const PostMention = require('../../post/models/post_mention.model');
+const Reel = require('../../reel/models/reel.model');
+const ReelMention = require('../../reel/models/reel_mention.model');
+const Like = require('../../post/models/like.model');
+const Save = require('../../post/models/bookmark.model');
 
 const FOLLOWER_ATTRS = ['id', 'username', 'fullName', 'profileImage'];
 
@@ -282,6 +290,173 @@ const getSuggestions = async (userId, limit = 20) => {
   return { firstDegree, secondDegree, thirdDegree };
 };
 
+// ── Profile viewing ────────────────────────────────────────────────────────────
+
+const isFollowing = async (viewerId, targetId) => {
+  const row = await Follow.findOne({
+    where: { followerId: viewerId, followingId: targetId, status: 'accepted' },
+  });
+  return !!row;
+};
+
+const canViewContent = async (viewerId, target) => {
+  if (viewerId === target.id) return true;
+  if (!target.isPrivate) return true;
+  return isFollowing(viewerId, target.id);
+};
+
+const getUserProfile = async (viewerId, targetId) => {
+  const target = await User.findByPk(targetId, {
+    attributes: ['id', 'username', 'fullName', 'bio', 'profession', 'profileImage', 'isPrivate', 'createdAt'],
+  });
+  if (!target) throwErr(404, 'User not found');
+
+  const isOwn = viewerId === targetId;
+
+  const [postCount, reelCount, followerCount, followingCount, followRow] = await Promise.all([
+    Post.count({ where: { userId: targetId } }),
+    Reel.count({ where: { userId: targetId } }),
+    Follow.count({ where: { followingId: targetId, status: 'accepted' } }),
+    Follow.count({ where: { followerId: targetId, status: 'accepted' } }),
+    isOwn ? null : Follow.findOne({ where: { followerId: viewerId, followingId: targetId } }),
+  ]);
+
+  let followStatus = null;
+  if (!isOwn) {
+    if (followRow?.status === 'accepted') followStatus = 'following';
+    else if (followRow?.status === 'pending') followStatus = 'pending';
+    else followStatus = 'none';
+  }
+
+  return {
+    ...target.toJSON(),
+    postCount,
+    reelCount,
+    followerCount,
+    followingCount,
+    followStatus,
+    isOwnProfile: isOwn,
+  };
+};
+
+const getUserPosts = async (viewerId, targetId, { page = 1, limit = 12 } = {}) => {
+  const target = await User.findByPk(targetId, { attributes: ['id', 'isPrivate'] });
+  if (!target) throwErr(404, 'User not found');
+
+  const allowed = await canViewContent(viewerId, target);
+  if (!allowed) return { canView: false, posts: [], total: 0, page, limit };
+
+  const offset = (page - 1) * limit;
+
+  const { count, rows: posts } = await Post.findAndCountAll({
+    where: { userId: targetId },
+    include: [
+      { model: User, as: 'author', attributes: ['id', 'username', 'fullName', 'profileImage'] },
+      { model: PostMedia, as: 'media', attributes: ['mediaUrl', 'order'] },
+      { model: Hashtag, as: 'hashtags', attributes: ['name'], through: { attributes: [] } },
+      {
+        model: PostMention,
+        as: 'mentions',
+        include: [{ model: User, as: 'mentionedUser', attributes: ['id', 'username', 'profileImage'] }],
+      },
+    ],
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset,
+    distinct: true,
+  });
+
+  const postIds = posts.map((p) => p.id);
+
+  const [likeRows, saveRows, viewerLikeRows, viewerSaveRows] = await Promise.all([
+    Like.findAll({ where: { contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
+    Save.findAll({ where: { contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
+    Like.findAll({ where: { userId: viewerId, contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
+    Save.findAll({ where: { userId: viewerId, contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
+  ]);
+
+  const likeCounts = likeRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const saveCounts = saveRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const viewerLikedSet = new Set(viewerLikeRows.map((r) => r.contentId));
+  const viewerSavedSet = new Set(viewerSaveRows.map((r) => r.contentId));
+
+  const formatted = posts.map((post) => ({
+    id: post.id,
+    caption: post.caption,
+    isPrivate: post.isPrivate,
+    createdAt: post.createdAt,
+    author: { id: post.author.id, username: post.author.username, fullName: post.author.fullName, profileImage: post.author.profileImage || null },
+    media: post.media.sort((a, b) => a.order - b.order).map((m) => m.mediaUrl),
+    hashtags: post.hashtags.map((h) => h.name),
+    mentions: post.mentions.map((m) => ({ id: m.mentionedUser.id, username: m.mentionedUser.username, profileImage: m.mentionedUser.profileImage || null })),
+    likeCount: likeCounts[post.id] || 0,
+    saveCount: saveCounts[post.id] || 0,
+    hasLiked: viewerLikedSet.has(post.id),
+    hasSaved: viewerSavedSet.has(post.id),
+  }));
+
+  return { canView: true, posts: formatted, total: count, page, limit };
+};
+
+const getUserReels = async (viewerId, targetId, { page = 1, limit = 12 } = {}) => {
+  const target = await User.findByPk(targetId, { attributes: ['id', 'isPrivate'] });
+  if (!target) throwErr(404, 'User not found');
+
+  const allowed = await canViewContent(viewerId, target);
+  if (!allowed) return { canView: false, reels: [], total: 0, page, limit };
+
+  const offset = (page - 1) * limit;
+
+  const { count, rows: reels } = await Reel.findAndCountAll({
+    where: { userId: targetId },
+    include: [
+      { model: User, as: 'author', attributes: ['id', 'username', 'fullName', 'profileImage'] },
+      { model: Hashtag, as: 'hashtags', attributes: ['name'], through: { attributes: [] } },
+      {
+        model: ReelMention,
+        as: 'mentions',
+        include: [{ model: User, as: 'mentionedUser', attributes: ['id', 'username', 'profileImage'] }],
+      },
+    ],
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset,
+    distinct: true,
+  });
+
+  const reelIds = reels.map((r) => r.id);
+
+  const [likeRows, saveRows, viewerLikeRows, viewerSaveRows] = await Promise.all([
+    Like.findAll({ where: { contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
+    Save.findAll({ where: { contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
+    Like.findAll({ where: { userId: viewerId, contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
+    Save.findAll({ where: { userId: viewerId, contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
+  ]);
+
+  const likeCounts = likeRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const saveCounts = saveRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const viewerLikedSet = new Set(viewerLikeRows.map((r) => r.contentId));
+  const viewerSavedSet = new Set(viewerSaveRows.map((r) => r.contentId));
+
+  const formatted = reels.map((reel) => ({
+    id: reel.id,
+    videoUrl: reel.videoUrl,
+    thumbnailUrl: reel.thumbnailUrl || null,
+    caption: reel.caption,
+    isPrivate: reel.isPrivate,
+    createdAt: reel.createdAt,
+    author: { id: reel.author.id, username: reel.author.username, fullName: reel.author.fullName, profileImage: reel.author.profileImage || null },
+    hashtags: reel.hashtags.map((h) => h.name),
+    mentions: reel.mentions.map((m) => ({ id: m.mentionedUser.id, username: m.mentionedUser.username, profileImage: m.mentionedUser.profileImage || null })),
+    likeCount: likeCounts[reel.id] || 0,
+    saveCount: saveCounts[reel.id] || 0,
+    hasLiked: viewerLikedSet.has(reel.id),
+    hasSaved: viewerSavedSet.has(reel.id),
+  }));
+
+  return { canView: true, reels: formatted, total: count, page, limit };
+};
+
 module.exports = {
   updateProfile,
   saveInterests,
@@ -295,4 +470,7 @@ module.exports = {
   getFollowing,
   getFriends,
   getSuggestions,
+  getUserProfile,
+  getUserPosts,
+  getUserReels,
 };
