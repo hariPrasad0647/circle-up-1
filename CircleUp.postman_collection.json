@@ -1,0 +1,308 @@
+{
+  "info": {
+    "name": "CircleUp API",
+    "_postman_id": "circleup-api-collection",
+    "description": "Complete API collection for CircleUp. Set {{baseUrl}} = http://localhost:5000 and {{token}} after login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token",   "value": "",                       "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign Up",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api","auth","signup"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+1234567890\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["api","auth","verify-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"code\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/resend-otp", "host": ["{{baseUrl}}"], "path": ["api","auth","resend-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/profile", "host": ["{{baseUrl}}"], "path": ["api","users","profile"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "fullName",   "value": "John Doe",        "type": "text" },
+                { "key": "username",   "value": "johndoe",         "type": "text" },
+                { "key": "bio",        "value": "Hello world!",    "type": "text" },
+                { "key": "profession", "value": "Software Engineer","type": "text" },
+                { "key": "isPrivate",  "value": "false",           "type": "text" },
+                { "key": "image",      "src": "",                   "type": "file", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Save Interests",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/users/interests", "host": ["{{baseUrl}}"], "path": ["api","users","interests"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interests\": [\"Technology\", \"Design\", \"Music\", \"Travel\", \"Fitness\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Interests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/interests", "host": ["{{baseUrl}}"], "path": ["api","users","interests"] }
+          }
+        },
+        {
+          "name": "Get Follow Requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/follow-requests", "host": ["{{baseUrl}}"], "path": ["api","users","follow-requests"] }
+          }
+        },
+        {
+          "name": "Accept Follow Request",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/follow-requests/:id/accept", "host": ["{{baseUrl}}"], "path": ["api","users","follow-requests",":id","accept"], "variable": [{ "key": "id", "value": "USER_ID" }] }
+          }
+        },
+        {
+          "name": "Reject Follow Request",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/follow-requests/:id/reject", "host": ["{{baseUrl}}"], "path": ["api","users","follow-requests",":id","reject"], "variable": [{ "key": "id", "value": "USER_ID" }] }
+          }
+        },
+        {
+          "name": "Get Followers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/followers", "host": ["{{baseUrl}}"], "path": ["api","users","followers"] }
+          }
+        },
+        {
+          "name": "Get Following",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/following", "host": ["{{baseUrl}}"], "path": ["api","users","following"] }
+          }
+        },
+        {
+          "name": "Get Friends",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/friends", "host": ["{{baseUrl}}"], "path": ["api","users","friends"] }
+          }
+        },
+        {
+          "name": "Get Suggestions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/suggestions", "host": ["{{baseUrl}}"], "path": ["api","users","suggestions"] }
+          }
+        },
+        {
+          "name": "Get Saved Posts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/saved/posts", "host": ["{{baseUrl}}"], "path": ["api","users","saved","posts"] }
+          }
+        },
+        {
+          "name": "Get Saved Reels",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/saved/reels", "host": ["{{baseUrl}}"], "path": ["api","users","saved","reels"] }
+          }
+        },
+        {
+          "name": "Follow User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/:id/follow", "host": ["{{baseUrl}}"], "path": ["api","users",":id","follow"], "variable": [{ "key": "id", "value": "USER_ID" }] }
+          }
+        },
+        {
+          "name": "Unfollow User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/:id/follow", "host": ["{{baseUrl}}"], "path": ["api","users",":id","follow"], "variable": [{ "key": "id", "value": "USER_ID" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/posts", "host": ["{{baseUrl}}"], "path": ["api","posts"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "caption",   "value": "My first post!", "type": "text" },
+                { "key": "isPrivate", "value": "false",          "type": "text" },
+                { "key": "images",    "src": [],                 "type": "file", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Post",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/posts/:id", "host": ["{{baseUrl}}"], "path": ["api","posts",":id"], "variable": [{ "key": "id", "value": "POST_ID" }] }
+          }
+        },
+        {
+          "name": "Like / Unlike Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/posts/:id/like", "host": ["{{baseUrl}}"], "path": ["api","posts",":id","like"], "variable": [{ "key": "id", "value": "POST_ID" }] }
+          }
+        },
+        {
+          "name": "Save / Unsave Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/posts/:id/save", "host": ["{{baseUrl}}"], "path": ["api","posts",":id","save"], "variable": [{ "key": "id", "value": "POST_ID" }] }
+          }
+        },
+        {
+          "name": "Share Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/posts/:id/share", "host": ["{{baseUrl}}"], "path": ["api","posts",":id","share"], "variable": [{ "key": "id", "value": "POST_ID" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reels",
+      "item": [
+        {
+          "name": "Create Reel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reels", "host": ["{{baseUrl}}"], "path": ["api","reels"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "caption",   "value": "Check out my reel!", "type": "text" },
+                { "key": "isPrivate", "value": "false",               "type": "text" },
+                { "key": "video",     "src": "",                      "type": "file", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Reel",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reels/:id", "host": ["{{baseUrl}}"], "path": ["api","reels",":id"], "variable": [{ "key": "id", "value": "REEL_ID" }] }
+          }
+        },
+        {
+          "name": "Like / Unlike Reel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reels/:id/like", "host": ["{{baseUrl}}"], "path": ["api","reels",":id","like"], "variable": [{ "key": "id", "value": "REEL_ID" }] }
+          }
+        },
+        {
+          "name": "Save / Unsave Reel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reels/:id/save", "host": ["{{baseUrl}}"], "path": ["api","reels",":id","save"], "variable": [{ "key": "id", "value": "REEL_ID" }] }
+          }
+        },
+        {
+          "name": "Share Reel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/reels/:id/share", "host": ["{{baseUrl}}"], "path": ["api","reels",":id","share"], "variable": [{ "key": "id", "value": "REEL_ID" }] }
+          }
+        }
+      ]
+    }
+  ]
+}
