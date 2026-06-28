@@ -11,6 +11,10 @@ require('./modules/chat/models/conversationParticipant.model');
 require('./modules/chat/models/message.model');
 require('./modules/chat/models/messageMedia.model');
 
+// Load story models
+require('./modules/story/models/story.model');
+require('./modules/story/models/storyView.model');
+
 const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);

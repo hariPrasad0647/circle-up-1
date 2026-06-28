@@ -265,6 +265,104 @@
       ]
     },
     {
+      "name": "Feed",
+      "description": "Ranked home feed mixing posts and reels.\n\nAlgorithm weights:\n  • Content from followed accounts  → 2× relationship bonus\n  • Saves count 2×, shares 1.5×, likes 1× for engagement score\n  • Hashtags matching your interests → 1.5× interest bonus\n  • Time decay: score ÷ (hours_old + 2)^1.2\n  • Looks back 14 days; fills gaps with trending public content\n\nEach item has a `type` field: \"post\" | \"reel\"\nand an `isFromFollowing` boolean so the client can label suggested content.",
+      "item": [
+        {
+          "name": "Get Feed",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/feed?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","feed"],
+              "query": [
+                { "key": "page",  "value": "1",  "description": "Page number (default 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (default 20)" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stories",
+      "description": "Instagram-style stories — expire after 24 hours.\n\nFeed order: users with unseen stories appear first, then by most recent story.\nViewing a story via GET /api/stories/:id automatically marks it as seen.\nOnly the story author can call the /viewers endpoint.",
+      "item": [
+        {
+          "name": "Post Story",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/stories", "host": ["{{baseUrl}}"], "path": ["api","stories"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file",    "src": "",             "type": "file", "description": "Image (≤5 MB) or video (≤100 MB) — required" },
+                { "key": "caption", "value": "Good morning!", "type": "text", "description": "Optional caption (max 200 chars)", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Story Feed",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/stories/feed", "host": ["{{baseUrl}}"], "path": ["api","stories","feed"] }
+          }
+        },
+        {
+          "name": "Get My Stories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/stories/me", "host": ["{{baseUrl}}"], "path": ["api","stories","me"] }
+          }
+        },
+        {
+          "name": "View Story",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/stories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","stories",":id"],
+              "variable": [{ "key": "id", "value": "STORY_ID" }]
+            }
+          }
+        },
+        {
+          "name": "Get Story Viewers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/stories/:id/viewers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","stories",":id","viewers"],
+              "variable": [{ "key": "id", "value": "STORY_ID" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Story",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/stories/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","stories",":id"],
+              "variable": [{ "key": "id", "value": "STORY_ID" }]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Posts",
       "item": [
         {

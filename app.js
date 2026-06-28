@@ -11,6 +11,8 @@ const userRoutes = require('./modules/user/routes/user.routes');
 const postRoutes = require('./modules/post/routes/post.routes');
 const reelRoutes = require('./modules/reel/routes/reel.routes');
 const chatRoutes = require('./modules/chat/routes/chat.routes');
+const feedRoutes = require('./modules/feed/routes/feed.routes');
+const storyRoutes = require('./modules/story/routes/story.routes');
 
 const app = express();
 
@@ -29,6 +31,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/reels', reelRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/feed', feedRoutes);
+app.use('/api/stories', storyRoutes);
 
 app.use(errorHandler);
 

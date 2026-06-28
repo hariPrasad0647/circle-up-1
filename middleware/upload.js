@@ -116,4 +116,24 @@ const uploadChatMedia = (req, res, next) => {
   });
 };
 
-module.exports = { uploadProfileImage, uploadPostImages, uploadReel, uploadChatMedia };
+// ── Story (single image or video, 24-hour lifespan) ───────────────────────────
+
+const uploadStory = (req, res, next) => {
+  chatUpload.single('file')(req, res, async (err) => {
+    if (err) return handleMulterError(err, res, true);
+    if (!req.file) return next();
+    try {
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const isVideo = VIDEO_EXTS.includes(ext);
+      const folder = isVideo ? 'stories/videos' : 'stories/images';
+      const filename = `${req.user.id}_${Date.now()}${ext}`;
+      const mediaUrl = await uploadToBunny(req.file.buffer, `${folder}/${filename}`);
+      req.storyUpload = { mediaUrl, mediaType: isVideo ? 'video' : 'image' };
+      next();
+    } catch {
+      return error(res, 500, 'Failed to upload story. Please try again.');
+    }
+  });
+};
+
+module.exports = { uploadProfileImage, uploadPostImages, uploadReel, uploadChatMedia, uploadStory };
