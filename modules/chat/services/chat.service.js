@@ -73,44 +73,63 @@ const saveMessage = async ({ conversationId, senderId, content, mediaItems = [] 
 };
 
 const getConversations = async (userId) => {
-  const participants = await ConversationParticipant.findAll({
+  // Step 1: get all conversation IDs this user is in
+  const myParticipations = await ConversationParticipant.findAll({
     where: { userId },
-    include: [
-      {
-        model: Conversation,
-        include: [
-          {
-            model: ConversationParticipant,
-            as: 'participants',
-            where: { userId: { [Op.ne]: userId } },
-            include: [{ model: User, as: 'user', attributes: ['id', 'username', 'profileImage', 'fullName'] }],
-          },
-          {
-            model: Message,
-            as: 'messages',
-            limit: 1,
-            order: [['createdAt', 'DESC']],
-            include: [{ model: MessageMedia, as: 'media' }],
-          },
-        ],
-      },
-    ],
-    order: [[Conversation, Message, 'createdAt', 'DESC']],
+    attributes: ['conversationId', 'lastReadAt'],
   });
 
-  return participants.map((p) => {
-    const conv = p.Conversation;
-    const otherUser = conv.participants[0]?.user;
-    const lastMessage = conv.messages[0] || null;
-    return {
-      conversationId: conv.id,
-      otherUser,
-      lastMessage: lastMessage?.isDeleted
-        ? { ...lastMessage.toJSON(), content: null, media: [] }
-        : lastMessage,
-      lastReadAt: p.lastReadAt,
-    };
+  if (myParticipations.length === 0) return [];
+
+  const conversationIds = myParticipations.map((p) => p.conversationId);
+  const lastReadMap = Object.fromEntries(
+    myParticipations.map((p) => [p.conversationId, p.lastReadAt])
+  );
+
+  // Step 2: get the other participant's user info for each conversation
+  const otherParticipants = await ConversationParticipant.findAll({
+    where: { conversationId: { [Op.in]: conversationIds }, userId: { [Op.ne]: userId } },
+    include: [{ model: User, as: 'user', attributes: ['id', 'username', 'profileImage', 'fullName'] }],
   });
+
+  const otherUserMap = Object.fromEntries(
+    otherParticipants.map((p) => [p.conversationId, p.user])
+  );
+
+  // Step 3: get the latest message per conversation
+  const allMessages = await Message.findAll({
+    where: { conversationId: { [Op.in]: conversationIds } },
+    include: [{ model: MessageMedia, as: 'media' }],
+    order: [['createdAt', 'DESC']],
+  });
+
+  const lastMessageMap = {};
+  for (const msg of allMessages) {
+    if (!lastMessageMap[msg.conversationId]) {
+      lastMessageMap[msg.conversationId] = msg;
+    }
+  }
+
+  return conversationIds
+    .map((convId) => {
+      const raw = lastMessageMap[convId] || null;
+      const lastMessage = raw
+        ? raw.isDeleted
+          ? { ...raw.toJSON(), content: null, media: [] }
+          : raw
+        : null;
+      return {
+        conversationId: convId,
+        otherUser: otherUserMap[convId] || null,
+        lastMessage,
+        lastReadAt: lastReadMap[convId],
+      };
+    })
+    .sort((a, b) => {
+      const aTime = a.lastMessage?.createdAt ?? 0;
+      const bTime = b.lastMessage?.createdAt ?? 0;
+      return new Date(bTime) - new Date(aTime);
+    });
 };
 
 const getMessages = async (conversationId, userId, { limit = 30, before } = {}) => {
