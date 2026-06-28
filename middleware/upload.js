@@ -11,6 +11,10 @@ const reelUpload = createUpload(
   [...VIDEO_EXTS, ...IMAGE_EXTS],
   parseInt(process.env.MAX_VIDEO_SIZE) || 104857600
 );
+const chatUpload = createUpload(
+  [...IMAGE_EXTS, ...VIDEO_EXTS],
+  parseInt(process.env.MAX_VIDEO_SIZE) || 104857600
+);
 
 const handleMulterError = (err, res, videoMode = false) => {
   if (err.code === 'LIMIT_FILE_SIZE') {
@@ -92,4 +96,24 @@ const uploadReel = (req, res, next) => {
   });
 };
 
-module.exports = { uploadProfileImage, uploadPostImages, uploadReel };
+// ── Chat media (single image or video) ───────────────────────────────────────
+
+const uploadChatMedia = (req, res, next) => {
+  chatUpload.single('file')(req, res, async (err) => {
+    if (err) return handleMulterError(err, res, true);
+    if (!req.file) return next();
+    try {
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const isVideo = VIDEO_EXTS.includes(ext);
+      const folder = isVideo ? 'chat/videos' : 'chat/images';
+      const filename = `${req.user.id}_${Date.now()}${ext}`;
+      const mediaUrl = await uploadToBunny(req.file.buffer, `${folder}/${filename}`);
+      req.chatUpload = { mediaUrl, mediaType: isVideo ? 'video' : 'image' };
+      next();
+    } catch {
+      return error(res, 500, 'Failed to upload file. Please try again.');
+    }
+  });
+};
+
+module.exports = { uploadProfileImage, uploadPostImages, uploadReel, uploadChatMedia };

@@ -80,7 +80,7 @@
                 { "key": "bio",        "value": "Hello world!",    "type": "text" },
                 { "key": "profession", "value": "Software Engineer","type": "text" },
                 { "key": "isPrivate",  "value": "false",           "type": "text" },
-                { "key": "image",      "src": "",                   "type": "file", "disabled": true }
+                { "key": "profileImage", "src": "",                  "type": "file", "disabled": true }
               ]
             }
           }
@@ -300,6 +300,77 @@
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": { "raw": "{{baseUrl}}/api/reels/:id/share", "host": ["{{baseUrl}}"], "path": ["api","reels",":id","share"], "variable": [{ "key": "id", "value": "REEL_ID" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "description": "Direct messaging module. All REST endpoints require Authorization header.\n\n── Socket.io (Real-time) ──────────────────────────────────────────\nConnect: io('http://localhost:5000', { auth: { token: '<JWT>' } })\n\nClient → Server events:\n  chat:send        { recipientId, content, media: [{ mediaUrl, mediaType, thumbnailUrl? }] }\n  chat:typing      { recipientId }\n  chat:stop_typing { recipientId }\n  chat:read        { conversationId, senderId }\n\nServer → Client events:\n  chat:message     { conversationId, message }\n  chat:typing      { senderId }\n  chat:stop_typing { senderId }\n  chat:read        { conversationId, readBy }\n  chat:error       { message }\n\nMedia flow: upload file via POST /api/chat/upload → get back { mediaUrl, mediaType } → pass inside media[] array of chat:send socket event.",
+      "item": [
+        {
+          "name": "Get Conversations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","chat","conversations"]
+            }
+          }
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/conversations/:conversationId/messages?limit=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","chat","conversations",":conversationId","messages"],
+              "variable": [{ "key": "conversationId", "value": "CONVERSATION_ID" }],
+              "query": [
+                { "key": "limit",  "value": "30",          "description": "Number of messages per page (default 30)" },
+                { "key": "before", "value": "",             "description": "ISO date — load messages older than this timestamp (cursor-based pagination)", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Chat Media",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","chat","upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "src": "",
+                  "type": "file",
+                  "description": "Image (jpg/jpeg/png/webp, max 5 MB) or video (mp4/mov/avi/webm/mkv, max 100 MB)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/messages/:messageId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","chat","messages",":messageId"],
+              "variable": [{ "key": "messageId", "value": "MESSAGE_ID" }]
+            }
           }
         }
       ]

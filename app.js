@@ -10,6 +10,7 @@ const authRoutes = require('./modules/auth/routes/auth.routes');
 const userRoutes = require('./modules/user/routes/user.routes');
 const postRoutes = require('./modules/post/routes/post.routes');
 const reelRoutes = require('./modules/reel/routes/reel.routes');
+const chatRoutes = require('./modules/chat/routes/chat.routes');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/reels', reelRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.use(errorHandler);
 
