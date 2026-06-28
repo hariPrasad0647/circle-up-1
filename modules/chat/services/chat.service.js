@@ -11,7 +11,7 @@ const canMessageUser = async (senderId, recipientId) => {
   const recipient = await User.findByPk(recipientId, {
     attributes: ['id', 'isPrivate'],
   });
-  if (!recipient) return { allowed: false, reason: 'User not found' };
+  if (!recipient) return { allowed: false, status: 404, reason: 'Recipient user not found' };
   if (!recipient.isPrivate) return { allowed: true };
 
   const [senderFollows, recipientFollows] = await Promise.all([
@@ -26,6 +26,7 @@ const canMessageUser = async (senderId, recipientId) => {
   if (senderFollows && recipientFollows) return { allowed: true };
   return {
     allowed: false,
+    status: 403,
     reason: 'You can only message mutual followers of private accounts',
   };
 };

@@ -55,8 +55,8 @@ const sendMessage = async (req, res, next) => {
     if (!recipientId) return error(res, 400, 'recipientId is required');
     if (!content && !req.chatUpload) return error(res, 400, 'Message must have text or a file');
 
-    const { allowed, reason } = await chatService.canMessageUser(senderId, recipientId);
-    if (!allowed) return error(res, 403, reason);
+    const { allowed, status, reason } = await chatService.canMessageUser(senderId, recipientId);
+    if (!allowed) return error(res, status, reason);
 
     const conversation = await chatService.findOrCreateConversation(senderId, recipientId);
 
