@@ -7,10 +7,12 @@ const {
   getMessages,
   deleteMessage,
   uploadChatMedia,
+  sendMessage,
 } = require('../controllers/chat.controller');
 
 router.use(auth);
 
+router.post('/send', uploadChatMediaMiddleware, sendMessage);
 router.get('/conversations', getConversations);
 router.get('/conversations/:conversationId/messages', getMessages);
 router.delete('/messages/:messageId', deleteMessage);

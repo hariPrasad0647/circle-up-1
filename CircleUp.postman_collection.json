@@ -2,12 +2,12 @@
   "info": {
     "name": "CircleUp API",
     "_postman_id": "circleup-api-collection",
-    "description": "Complete API collection for CircleUp. Set {{baseUrl}} = http://localhost:5000 and {{token}} after login.",
+    "description": "Complete API collection for CircleUp.\n\nVariables:\n  {{baseUrl}}  — https://circle-up-fk10.onrender.com (change to http://localhost:5000 for local)\n  {{token}}    — paste your JWT access token here after login",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
-    { "key": "token",   "value": "",                       "type": "string" }
+    { "key": "baseUrl", "value": "https://circle-up-fk10.onrender.com", "type": "string" },
+    { "key": "token",   "value": "",                                      "type": "string" }
   ],
   "item": [
     {
@@ -64,7 +64,8 @@
       ]
     },
     {
-      "name": "Users",
+      "name": "Users — Own Account",
+      "description": "Endpoints that act on the currently authenticated user's own account.",
       "item": [
         {
           "name": "Update Profile",
@@ -75,12 +76,12 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "fullName",   "value": "John Doe",        "type": "text" },
-                { "key": "username",   "value": "johndoe",         "type": "text" },
-                { "key": "bio",        "value": "Hello world!",    "type": "text" },
-                { "key": "profession", "value": "Software Engineer","type": "text" },
-                { "key": "isPrivate",  "value": "false",           "type": "text" },
-                { "key": "profileImage", "src": "",                  "type": "file", "disabled": true }
+                { "key": "fullName",     "value": "John Doe",         "type": "text" },
+                { "key": "username",     "value": "johndoe",          "type": "text" },
+                { "key": "bio",          "value": "Hello world!",     "type": "text" },
+                { "key": "profession",   "value": "Software Engineer","type": "text" },
+                { "key": "isPrivate",    "value": "false",            "type": "text" },
+                { "key": "profileImage", "src": "",                   "type": "file", "disabled": true }
               ]
             }
           }
@@ -101,11 +102,87 @@
           }
         },
         {
-          "name": "Get Interests",
+          "name": "Get My Interests",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": { "raw": "{{baseUrl}}/api/users/interests", "host": ["{{baseUrl}}"], "path": ["api","users","interests"] }
+          }
+        },
+        {
+          "name": "Get Saved Posts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/saved/posts", "host": ["{{baseUrl}}"], "path": ["api","users","saved","posts"] }
+          }
+        },
+        {
+          "name": "Get Saved Reels",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/saved/reels", "host": ["{{baseUrl}}"], "path": ["api","users","saved","reels"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users — Discovery",
+      "description": "Followers, following, friends, and suggestions for the authenticated user.",
+      "item": [
+        {
+          "name": "Get Followers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/followers", "host": ["{{baseUrl}}"], "path": ["api","users","followers"] }
+          }
+        },
+        {
+          "name": "Get Following",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/following", "host": ["{{baseUrl}}"], "path": ["api","users","following"] }
+          }
+        },
+        {
+          "name": "Get Friends (Mutual Followers)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/friends", "host": ["{{baseUrl}}"], "path": ["api","users","friends"] }
+          }
+        },
+        {
+          "name": "Get Suggestions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/suggestions", "host": ["{{baseUrl}}"], "path": ["api","users","suggestions"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users — Follow",
+      "description": "Send, accept, reject follow requests and unfollow.",
+      "item": [
+        {
+          "name": "Follow User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/:id/follow", "host": ["{{baseUrl}}"], "path": ["api","users",":id","follow"], "variable": [{ "key": "id", "value": "USER_ID" }] }
+          }
+        },
+        {
+          "name": "Unfollow User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/:id/follow", "host": ["{{baseUrl}}"], "path": ["api","users",":id","follow"], "variable": [{ "key": "id", "value": "USER_ID" }] }
           }
         },
         {
@@ -131,71 +208,13 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": { "raw": "{{baseUrl}}/api/users/follow-requests/:id/reject", "host": ["{{baseUrl}}"], "path": ["api","users","follow-requests",":id","reject"], "variable": [{ "key": "id", "value": "USER_ID" }] }
           }
-        },
-        {
-          "name": "Get Followers",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/users/followers", "host": ["{{baseUrl}}"], "path": ["api","users","followers"] }
-          }
-        },
-        {
-          "name": "Get Following",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/users/following", "host": ["{{baseUrl}}"], "path": ["api","users","following"] }
-          }
-        },
-        {
-          "name": "Get Friends",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/users/friends", "host": ["{{baseUrl}}"], "path": ["api","users","friends"] }
-          }
-        },
-        {
-          "name": "Get Suggestions",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/users/suggestions", "host": ["{{baseUrl}}"], "path": ["api","users","suggestions"] }
-          }
-        },
-        {
-          "name": "Get Saved Posts",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/users/saved/posts", "host": ["{{baseUrl}}"], "path": ["api","users","saved","posts"] }
-          }
-        },
-        {
-          "name": "Get Saved Reels",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/users/saved/reels", "host": ["{{baseUrl}}"], "path": ["api","users","saved","reels"] }
-          }
-        },
-        {
-          "name": "Follow User",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/users/:id/follow", "host": ["{{baseUrl}}"], "path": ["api","users",":id","follow"], "variable": [{ "key": "id", "value": "USER_ID" }] }
-          }
-        },
-        {
-          "name": "Unfollow User",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/users/:id/follow", "host": ["{{baseUrl}}"], "path": ["api","users",":id","follow"], "variable": [{ "key": "id", "value": "USER_ID" }] }
-          }
-        },
+        }
+      ]
+    },
+    {
+      "name": "Users — Profile View",
+      "description": "View another user's public profile, posts, and reels.\n\nPrivacy rules:\n  • Public account   → always accessible\n  • Private account  → profile info always visible; posts/reels require accepted follow\n  • Own profile      → always full access\n\nfollowStatus in profile response: \"following\" | \"pending\" | \"none\" | null (own profile)",
+      "item": [
         {
           "name": "Get User Profile",
           "request": {
@@ -220,8 +239,8 @@
               "path": ["api","users",":id","posts"],
               "variable": [{ "key": "id", "value": "USER_ID" }],
               "query": [
-                { "key": "page",  "value": "1" },
-                { "key": "limit", "value": "12" }
+                { "key": "page",  "value": "1",  "description": "Page number (default 1)" },
+                { "key": "limit", "value": "12", "description": "Items per page (default 12)" }
               ]
             }
           }
@@ -237,8 +256,8 @@
               "path": ["api","users",":id","reels"],
               "variable": [{ "key": "id", "value": "USER_ID" }],
               "query": [
-                { "key": "page",  "value": "1" },
-                { "key": "limit", "value": "12" }
+                { "key": "page",  "value": "1",  "description": "Page number (default 1)" },
+                { "key": "limit", "value": "12", "description": "Items per page (default 12)" }
               ]
             }
           }
@@ -312,7 +331,8 @@
               "formdata": [
                 { "key": "caption",   "value": "Check out my reel!", "type": "text" },
                 { "key": "isPrivate", "value": "false",               "type": "text" },
-                { "key": "video",     "src": "",                      "type": "file", "disabled": true }
+                { "key": "video",     "src": "",                      "type": "file", "disabled": true },
+                { "key": "thumbnail", "src": "",                      "type": "file", "disabled": true }
               ]
             }
           }
@@ -353,8 +373,28 @@
     },
     {
       "name": "Chat",
-      "description": "Direct messaging module. All REST endpoints require Authorization header.\n\n── Socket.io (Real-time) ──────────────────────────────────────────\nConnect: io('http://localhost:5000', { auth: { token: '<JWT>' } })\n\nClient → Server events:\n  chat:send        { recipientId, content, media: [{ mediaUrl, mediaType, thumbnailUrl? }] }\n  chat:typing      { recipientId }\n  chat:stop_typing { recipientId }\n  chat:read        { conversationId, senderId }\n\nServer → Client events:\n  chat:message     { conversationId, message }\n  chat:typing      { senderId }\n  chat:stop_typing { senderId }\n  chat:read        { conversationId, readBy }\n  chat:error       { message }\n\nMedia flow: upload file via POST /api/chat/upload → get back { mediaUrl, mediaType } → pass inside media[] array of chat:send socket event.",
+      "description": "Direct messaging — REST endpoints for history, and Socket.io for real-time.\n\n── Socket.io connection ───────────────────────────────────────────\nio('{{baseUrl}}', { auth: { token: '<JWT>' } })\n\nClient → Server:\n  chat:send        { recipientId, content?, media?: [{ mediaUrl, mediaType, thumbnailUrl? }] }\n  chat:typing      { recipientId }\n  chat:stop_typing { recipientId }\n  chat:read        { conversationId, senderId }\n\nServer → Client:\n  chat:message     { conversationId, message }\n  chat:typing      { senderId }\n  chat:stop_typing { senderId }\n  chat:read        { conversationId, readBy }\n  chat:error       { message }\n\nMedia flow: POST /api/chat/upload → { mediaUrl, mediaType } → pass in media[] of chat:send\nPrivacy: cannot message a private account unless you are mutual followers.",
       "item": [
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","chat","send"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "recipientId", "value": "USER_ID",      "type": "text",  "description": "Required — UUID of the user you are messaging" },
+                { "key": "content",     "value": "Hello! 👋",    "type": "text",  "description": "Optional text content" },
+                { "key": "file",        "src": "",               "type": "file",  "description": "Optional image (≤5 MB) or video (≤100 MB). Attach this OR leave empty for text-only.", "disabled": true }
+              ]
+            }
+          }
+        },
         {
           "name": "Get Conversations",
           "request": {
@@ -378,8 +418,8 @@
               "path": ["api","chat","conversations",":conversationId","messages"],
               "variable": [{ "key": "conversationId", "value": "CONVERSATION_ID" }],
               "query": [
-                { "key": "limit",  "value": "30",          "description": "Number of messages per page (default 30)" },
-                { "key": "before", "value": "",             "description": "ISO date — load messages older than this timestamp (cursor-based pagination)", "disabled": true }
+                { "key": "limit",  "value": "30", "description": "Messages per page (default 30)" },
+                { "key": "before", "value": "",   "description": "ISO timestamp — cursor for older messages", "disabled": true }
               ]
             }
           }
@@ -401,7 +441,7 @@
                   "key": "file",
                   "src": "",
                   "type": "file",
-                  "description": "Image (jpg/jpeg/png/webp, max 5 MB) or video (mp4/mov/avi/webm/mkv, max 100 MB)"
+                  "description": "Image (jpg/jpeg/png/webp ≤ 5 MB) or video (mp4/mov/avi/webm/mkv ≤ 100 MB)"
                 }
               ]
             }

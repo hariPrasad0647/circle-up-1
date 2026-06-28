@@ -24,6 +24,9 @@ const io = new Server(server, {
 
 registerChatSocket(io);
 
+// Make io accessible in controllers via req.app.get('io')
+app.set('io', io);
+
 const start = async () => {
   try {
     await sequelize.authenticate();
