@@ -1,17 +1,16 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.BREVO_SMTP_USER,
-    pass: process.env.BREVO_SMTP_PASS,
-  },
-});
+const BREVO_SEND_URL = 'https://api.brevo.com/v3/smtp/email';
 
 const buildOtpEmail = (code, minutes) => {
-  const digits = code.toString().split('').join('</td><td style="width:44px;height:52px;text-align:center;vertical-align:middle;font-size:28px;font-weight:700;color:#1a1a1a;background:#f4f4f5;border-radius:8px;">');
+  const digits = code
+    .toString()
+    .split('')
+    .map(
+      (d) =>
+        `<td style="width:44px;height:52px;text-align:center;vertical-align:middle;` +
+        `font-size:28px;font-weight:700;color:#1a1a1a;background:#f4f4f5;` +
+        `border-radius:8px;padding:0 4px;">${d}</td>`
+    )
+    .join('<td style="width:8px;"></td>');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -25,12 +24,10 @@ const buildOtpEmail = (code, minutes) => {
          style="background:#f9f9fb;padding:40px 0;">
     <tr>
       <td align="center">
-
-        <!-- Card -->
         <table width="520" cellpadding="0" cellspacing="0" role="presentation"
                style="background:#ffffff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden;">
 
-          <!-- Header bar -->
+          <!-- Header -->
           <tr>
             <td style="background:#000000;padding:28px 40px;text-align:center;">
               <span style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">
@@ -52,9 +49,7 @@ const buildOtpEmail = (code, minutes) => {
 
               <!-- OTP digits -->
               <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto 32px;">
-                <tr>
-                  <td style="width:44px;height:52px;text-align:center;vertical-align:middle;font-size:28px;font-weight:700;color:#1a1a1a;background:#f4f4f5;border-radius:8px;">${digits}</td>
-                </tr>
+                <tr>${digits}</tr>
               </table>
 
               <!-- Warning -->
@@ -87,8 +82,6 @@ const buildOtpEmail = (code, minutes) => {
           </tr>
 
         </table>
-        <!-- /Card -->
-
       </td>
     </tr>
   </table>
@@ -96,14 +89,35 @@ const buildOtpEmail = (code, minutes) => {
 </html>`;
 };
 
+const parseSender = (raw = '') => {
+  const match = raw.match(/^(.+?)\s*<(.+?)>$/);
+  if (match) return { name: match[1].trim(), email: match[2].trim() };
+  return { name: 'CircleUp', email: raw.trim() };
+};
+
 const sendOtpEmail = async (to, code) => {
   const minutes = Math.floor(Number(process.env.OTP_EXPIRES_IN || 300) / 60);
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject: 'Your CircleUp verification code',
-    html: buildOtpEmail(code, minutes),
+  const sender = parseSender(process.env.EMAIL_FROM);
+
+  const res = await fetch(BREVO_SEND_URL, {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender,
+      to: [{ email: to }],
+      subject: 'Your CircleUp verification code',
+      htmlContent: buildOtpEmail(code, minutes),
+    }),
   });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Brevo email failed (${res.status}): ${body}`);
+  }
 };
 
 module.exports = { sendOtpEmail };
