@@ -1,38 +1,37 @@
 const { DataTypes } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const sequelize = require('../../../config/db');
+const Post = require('./post.model');
 const User = require('../../user/models/user.model');
 
-const Like = sequelize.define(
-  'Like',
+const PostMention = sequelize.define(
+  'PostMention',
   {
     id: {
       type: DataTypes.UUID,
       defaultValue: uuidv4,
       primaryKey: true,
     },
-    userId: {
+    postId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'posts', key: 'id' },
+      onDelete: 'CASCADE',
+    },
+    mentionedUserId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'CASCADE',
     },
-    contentType: {
-      type: DataTypes.ENUM('post', 'reel'),
-      allowNull: false,
-    },
-    contentId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-    },
   },
   {
-    tableName: 'likes',
+    tableName: 'post_mentions',
     timestamps: false,
-    indexes: [{ unique: true, fields: ['userId', 'contentType', 'contentId'] }],
   }
 );
 
-Like.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Post.hasMany(PostMention, { foreignKey: 'postId', as: 'mentions' });
+PostMention.belongsTo(User, { foreignKey: 'mentionedUserId', as: 'mentionedUser' });
 
-module.exports = Like;
+module.exports = PostMention;

@@ -3,8 +3,8 @@ const { v4: uuidv4 } = require('uuid');
 const sequelize = require('../../../config/db');
 const User = require('../../user/models/user.model');
 
-const Save = sequelize.define(
-  'Save',
+const Share = sequelize.define(
+  'Share',
   {
     id: {
       type: DataTypes.UUID,
@@ -27,13 +27,13 @@ const Save = sequelize.define(
     },
   },
   {
-    tableName: 'saves',
+    tableName: 'shares',
     timestamps: true,
     updatedAt: false,
     indexes: [{ unique: true, fields: ['userId', 'contentType', 'contentId'] }],
   }
 );
 
-Save.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Share.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-module.exports = Save;
+module.exports = Share;
