@@ -1,6 +1,22 @@
 const BREVO_SEND_URL = 'https://api.brevo.com/v3/smtp/email';
 
-const buildOtpEmail = (code, minutes) => {
+const OTP_COPY = {
+  signup: {
+    subject: 'Your CircleUp verification code',
+    title: 'Verify your email address',
+    intro: (minutes) =>
+      `Use the code below to complete your CircleUp sign‑up. It will expire in <strong>${minutes} minute${minutes !== 1 ? 's' : ''}</strong>.`,
+  },
+  login: {
+    subject: 'Your CircleUp login code',
+    title: 'Confirm your login',
+    intro: (minutes) =>
+      `Use the code below to log in to CircleUp. It will expire in <strong>${minutes} minute${minutes !== 1 ? 's' : ''}</strong>.`,
+  },
+};
+
+const buildOtpEmail = (code, minutes, purpose = 'signup') => {
+  const copy = OTP_COPY[purpose] || OTP_COPY.signup;
   const digits = code
     .toString()
     .split('')
@@ -17,7 +33,7 @@ const buildOtpEmail = (code, minutes) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Verify your email – CircleUp</title>
+  <title>${copy.title} – CircleUp</title>
 </head>
 <body style="margin:0;padding:0;background:#f9f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
@@ -40,11 +56,10 @@ const buildOtpEmail = (code, minutes) => {
           <tr>
             <td style="padding:40px 40px 20px;">
               <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">
-                Verify your email address
+                ${copy.title}
               </p>
               <p style="margin:0 0 32px;font-size:15px;color:#6b7280;line-height:1.6;">
-                Use the code below to complete your CircleUp sign‑up.
-                It will expire in <strong>${minutes} minute${minutes !== 1 ? 's' : ''}</strong>.
+                ${copy.intro(minutes)}
               </p>
 
               <!-- OTP digits -->
@@ -95,9 +110,10 @@ const parseSender = (raw = '') => {
   return { name: 'CircleUp', email: raw.trim() };
 };
 
-const sendOtpEmail = async (to, code) => {
+const sendOtpEmail = async (to, code, purpose = 'signup') => {
   const minutes = Math.floor(Number(process.env.OTP_EXPIRES_IN || 300) / 60);
   const sender = parseSender(process.env.EMAIL_FROM);
+  const copy = OTP_COPY[purpose] || OTP_COPY.signup;
 
   const res = await fetch(BREVO_SEND_URL, {
     method: 'POST',
@@ -109,8 +125,8 @@ const sendOtpEmail = async (to, code) => {
     body: JSON.stringify({
       sender,
       to: [{ email: to }],
-      subject: 'Your CircleUp verification code',
-      htmlContent: buildOtpEmail(code, minutes),
+      subject: copy.subject,
+      htmlContent: buildOtpEmail(code, minutes, purpose),
     }),
   });
 

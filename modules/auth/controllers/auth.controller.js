@@ -31,4 +31,24 @@ const verifyOtp = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, resendOtp, verifyOtp };
+const login = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.requestLogin(email);
+    return response.success(res, 200, 'Login code sent to your email', result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const verifyLogin = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+    const result = await authService.verifyLogin(email, code);
+    return response.success(res, 200, 'Logged in successfully', result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { signup, resendOtp, verifyOtp, login, verifyLogin };

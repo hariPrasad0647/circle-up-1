@@ -51,4 +51,38 @@ const verifyOtpValidator = [
     .withMessage('Verification code must be numeric'),
 ];
 
-module.exports = { signupValidator, resendOtpValidator, verifyOtpValidator };
+const loginValidator = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('A valid email is required')
+    .normalizeEmail(),
+];
+
+const verifyLoginValidator = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('A valid email is required')
+    .normalizeEmail(),
+  body('code')
+    .trim()
+    .notEmpty()
+    .withMessage('Login code is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Login code must be 6 digits')
+    .isNumeric()
+    .withMessage('Login code must be numeric'),
+];
+
+module.exports = {
+  signupValidator,
+  resendOtpValidator,
+  verifyOtpValidator,
+  loginValidator,
+  verifyLoginValidator,
+};

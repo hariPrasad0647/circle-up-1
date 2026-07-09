@@ -7,7 +7,8 @@ const { generateOtp, hashOtp, compareOtp } = require('../../../utils/otp');
 const { sendOtpEmail } = require('../../../utils/email');
 const { signAccessToken, signRefreshToken } = require('../../../config/jwt');
 
-const OTP_PURPOSE = 'signup';
+const OTP_PURPOSE_SIGNUP = 'signup';
+const OTP_PURPOSE_LOGIN = 'login';
 const OTP_TTL_SECONDS = Number(process.env.OTP_EXPIRES_IN || 300);
 const PENDING_TTL_SECONDS = Number(process.env.PENDING_SIGNUP_EXPIRES_IN || 86400);
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -20,9 +21,9 @@ class ApiError extends Error {
   }
 }
 
-const getActiveCooldown = async (email) => {
+const getActiveCooldown = async (email, purpose) => {
   const lastOtp = await Otp.findOne({
-    where: { email, purpose: OTP_PURPOSE },
+    where: { email, purpose },
     order: [['createdAt', 'DESC']],
   });
   if (!lastOtp) return 0;
@@ -30,23 +31,42 @@ const getActiveCooldown = async (email) => {
   return elapsed < RESEND_COOLDOWN_SECONDS ? Math.ceil(RESEND_COOLDOWN_SECONDS - elapsed) : 0;
 };
 
-const issueOtp = async (email) => {
+const issueOtp = async (email, purpose) => {
   const code = generateOtp();
   const codeHash = await hashOtp(code);
 
   await Otp.update(
     { consumedAt: new Date() },
-    { where: { email, purpose: OTP_PURPOSE, consumedAt: null } }
+    { where: { email, purpose, consumedAt: null } }
   );
 
   await Otp.create({
     email,
     codeHash,
-    purpose: OTP_PURPOSE,
+    purpose,
     expiresAt: new Date(Date.now() + OTP_TTL_SECONDS * 1000),
   });
 
-  await sendOtpEmail(email, code);
+  await sendOtpEmail(email, code, purpose);
+};
+
+const buildAuthResponse = (user) => {
+  const payload = { id: user.id, email: user.email, username: user.username };
+  const accessToken = signAccessToken(payload);
+  const refreshToken = signRefreshToken(payload);
+
+  return {
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      isPrivate: user.isPrivate,
+    },
+    accessToken,
+    refreshToken,
+  };
 };
 
 const signup = async ({ fullName, username, email, phone }) => {
@@ -60,7 +80,7 @@ const signup = async ({ fullName, username, email, phone }) => {
   }
 
   // Cooldown check before any write
-  const cooldown = await getActiveCooldown(email);
+  const cooldown = await getActiveCooldown(email, OTP_PURPOSE_SIGNUP);
   if (cooldown > 0) {
     throw new ApiError(429, `Please wait ${cooldown}s before requesting another code`);
   }
@@ -80,7 +100,7 @@ const signup = async ({ fullName, username, email, phone }) => {
   const expiresAt = new Date(Date.now() + PENDING_TTL_SECONDS * 1000);
   await PendingSignup.upsert({ fullName, username, email, phone, expiresAt });
 
-  await issueOtp(email);
+  await issueOtp(email, OTP_PURPOSE_SIGNUP);
 
   return { email };
 };
@@ -94,12 +114,12 @@ const resendOtp = async (email) => {
     throw new ApiError(400, 'Your signup session has expired, please sign up again');
   }
 
-  const cooldown = await getActiveCooldown(email);
+  const cooldown = await getActiveCooldown(email, OTP_PURPOSE_SIGNUP);
   if (cooldown > 0) {
     throw new ApiError(429, `Please wait ${cooldown}s before requesting another code`);
   }
 
-  await issueOtp(email);
+  await issueOtp(email, OTP_PURPOSE_SIGNUP);
   return { email };
 };
 
@@ -115,7 +135,7 @@ const verifyOtp = async (email, code) => {
   }
 
   const otp = await Otp.findOne({
-    where: { email, purpose: OTP_PURPOSE, consumedAt: null },
+    where: { email, purpose: OTP_PURPOSE_SIGNUP, consumedAt: null },
     order: [['createdAt', 'DESC']],
   });
   if (!otp) throw new ApiError(400, 'No active verification code found, please request a new one');
@@ -143,22 +163,49 @@ const verifyOtp = async (email, code) => {
     return newUser;
   });
 
-  const payload = { id: user.id, email: user.email, username: user.username };
-  const accessToken = signAccessToken(payload);
-  const refreshToken = signRefreshToken(payload);
-
-  return {
-    user: {
-      id: user.id,
-      fullName: user.fullName,
-      username: user.username,
-      email: user.email,
-      phone: user.phone,
-      isPrivate: user.isPrivate,
-    },
-    accessToken,
-    refreshToken,
-  };
+  return buildAuthResponse(user);
 };
 
-module.exports = { ApiError, signup, resendOtp, verifyOtp };
+const requestLogin = async (email) => {
+  const user = await User.findOne({ where: { email } });
+  if (!user) {
+    throw new ApiError(404, 'No account found with this email');
+  }
+
+  const cooldown = await getActiveCooldown(email, OTP_PURPOSE_LOGIN);
+  if (cooldown > 0) {
+    throw new ApiError(429, `Please wait ${cooldown}s before requesting another code`);
+  }
+
+  await issueOtp(email, OTP_PURPOSE_LOGIN);
+  return { email };
+};
+
+const verifyLogin = async (email, code) => {
+  const user = await User.findOne({ where: { email } });
+  if (!user) {
+    throw new ApiError(404, 'No account found with this email');
+  }
+
+  const otp = await Otp.findOne({
+    where: { email, purpose: OTP_PURPOSE_LOGIN, consumedAt: null },
+    order: [['createdAt', 'DESC']],
+  });
+  if (!otp) throw new ApiError(400, 'No active login code found, please request a new one');
+  if (otp.expiresAt < new Date()) throw new ApiError(400, 'Login code has expired');
+  if (otp.attempts >= MAX_ATTEMPTS) {
+    throw new ApiError(429, 'Too many incorrect attempts, please request a new code');
+  }
+
+  const isMatch = await compareOtp(code, otp.codeHash);
+  if (!isMatch) {
+    await otp.increment('attempts');
+    throw new ApiError(400, 'Invalid login code');
+  }
+
+  await otp.update({ consumedAt: new Date() });
+
+  return buildAuthResponse(user);
+};
+
+module.exports = { ApiError, signup, resendOtp, verifyOtp, requestLogin, verifyLogin };
