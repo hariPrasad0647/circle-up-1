@@ -13,12 +13,12 @@ const Hashtag = sequelize.define(
     name: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true,
     },
   },
   {
     tableName: 'hashtags',
     timestamps: false,
+    indexes: [{ unique: true, fields: ['name'] }],
   }
 );
 

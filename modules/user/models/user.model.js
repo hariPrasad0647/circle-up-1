@@ -11,11 +11,10 @@ const User = sequelize.define(
       primaryKey: true,
     },
     fullName: { type: DataTypes.STRING, allowNull: false },
-    username: { type: DataTypes.STRING, allowNull: false, unique: true },
+    username: { type: DataTypes.STRING, allowNull: false },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
       validate: { isEmail: true },
     },
     phone: { type: DataTypes.STRING, allowNull: false },
@@ -28,6 +27,10 @@ const User = sequelize.define(
   {
     tableName: 'users',
     timestamps: true,
+    indexes: [
+      { unique: true, fields: ['username'] },
+      { unique: true, fields: ['email'] },
+    ],
   }
 );
 

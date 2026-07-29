@@ -8,13 +8,14 @@ const PendingSignup = sequelize.define(
     id: { type: DataTypes.UUID, defaultValue: uuidv4, primaryKey: true },
     fullName: { type: DataTypes.STRING, allowNull: false },
     username: { type: DataTypes.STRING, allowNull: false },
-    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+    email: { type: DataTypes.STRING, allowNull: false },
     phone: { type: DataTypes.STRING, allowNull: false },
     expiresAt: { type: DataTypes.DATE, allowNull: false },
   },
   {
     tableName: 'pending_signups',
     timestamps: true,
+    indexes: [{ unique: true, fields: ['email'] }],
   }
 );
 
