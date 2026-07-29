@@ -1,6 +1,8 @@
 const { Sequelize } = require('sequelize');
 
-const useSSL = process.env.DB_SSL === 'true';
+const useSSL = (process.env.DB_SSL || '').trim().toLowerCase() === 'true';
+
+console.log(`[db] connecting to ${process.env.DB_HOST}:${process.env.DB_PORT} (ssl=${useSSL})`);
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
