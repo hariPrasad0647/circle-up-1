@@ -162,6 +162,75 @@ Verifies the OTP and creates the user account. Returns auth tokens. Max 5 wrong 
 
 ---
 
+### POST `/api/auth/login`
+
+Sends a 6-digit login code to the email of an existing, verified account. 60 s cooldown between requests.
+
+**Request**
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+| Field | Type | Rules |
+|-------|------|-------|
+| email | string | required, valid email |
+
+**Response 200**
+```json
+{
+  "success": true,
+  "message": "Login code sent to your email",
+  "data": {
+    "email": "john@example.com"
+  }
+}
+```
+
+> Returns 404 if no account exists with this email.
+
+---
+
+### POST `/api/auth/login/verify`
+
+Verifies the login code and returns auth tokens. Max 5 wrong attempts before requiring a new code.
+
+**Request**
+```json
+{
+  "email": "john@example.com",
+  "code": "123456"
+}
+```
+
+| Field | Type | Rules |
+|-------|------|-------|
+| email | string | required, valid email |
+| code | string | required, exactly 6 numeric digits |
+
+**Response 200**
+```json
+{
+  "success": true,
+  "message": "Logged in successfully",
+  "data": {
+    "user": {
+      "id": "uuid",
+      "fullName": "John Doe",
+      "username": "john_doe",
+      "email": "john@example.com",
+      "phone": "+1234567890",
+      "isPrivate": false
+    },
+    "accessToken": "eyJ...",
+    "refreshToken": "eyJ..."
+  }
+}
+```
+
+---
+
 ## Module 2 — Users `/api/users`
 
 All endpoints require authentication (`Authorization: Bearer <token>`).

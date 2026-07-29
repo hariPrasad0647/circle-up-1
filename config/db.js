@@ -1,5 +1,7 @@
 const { Sequelize } = require('sequelize');
 
+const useSSL = process.env.DB_SSL === 'true';
+
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -9,6 +11,24 @@ const sequelize = new Sequelize(
     port: process.env.DB_PORT,
     dialect: 'mysql',
     logging: false,
+    timezone: '+00:00',
+    dialectOptions: {
+      charset: 'utf8mb4',
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
+      ...(useSSL && {
+        ssl: {
+          minVersion: 'TLSv1.2',
+          rejectUnauthorized: true,
+        },
+      }),
+    },
+    pool: {
+      max: 10,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
   }
 );
 
