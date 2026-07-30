@@ -2,6 +2,7 @@ const path = require('path');
 const { createUpload } = require('../config/multer');
 const { uploadToBunny } = require('../config/bunny');
 const { error } = require('../utils/response');
+const logger = require('../utils/logger');
 
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
 const VIDEO_EXTS = ['.mp4', '.mov', '.avi', '.webm', '.mkv'];
@@ -35,7 +36,8 @@ const uploadProfileImage = (req, res, next) => {
       const filename = `${req.user.id}_${Date.now()}${ext}`;
       req.file.cdnUrl = await uploadToBunny(req.file.buffer, `profile-images/${filename}`);
       next();
-    } catch {
+    } catch (uploadErr) {
+      logger.error('uploadProfileImage failed:', uploadErr);
       return error(res, 500, 'Failed to upload image. Please try again.');
     }
   });
@@ -56,7 +58,8 @@ const uploadPostImages = (req, res, next) => {
         })
       );
       next();
-    } catch {
+    } catch (uploadErr) {
+      logger.error('uploadPostImages failed:', uploadErr);
       return error(res, 500, 'Failed to upload images. Please try again.');
     }
   });
@@ -90,7 +93,8 @@ const uploadReel = (req, res, next) => {
 
       req.reelUpload = { videoUrl, thumbnailUrl };
       next();
-    } catch {
+    } catch (uploadErr) {
+      logger.error('uploadReel failed:', uploadErr);
       return error(res, 500, 'Failed to upload reel. Please try again.');
     }
   });
@@ -110,7 +114,8 @@ const uploadChatMedia = (req, res, next) => {
       const mediaUrl = await uploadToBunny(req.file.buffer, `${folder}/${filename}`);
       req.chatUpload = { mediaUrl, mediaType: isVideo ? 'video' : 'image' };
       next();
-    } catch {
+    } catch (uploadErr) {
+      logger.error('uploadChatMedia failed:', uploadErr);
       return error(res, 500, 'Failed to upload file. Please try again.');
     }
   });
@@ -130,7 +135,8 @@ const uploadStory = (req, res, next) => {
       const mediaUrl = await uploadToBunny(req.file.buffer, `${folder}/${filename}`);
       req.storyUpload = { mediaUrl, mediaType: isVideo ? 'video' : 'image' };
       next();
-    } catch {
+    } catch (uploadErr) {
+      logger.error('uploadStory failed:', uploadErr);
       return error(res, 500, 'Failed to upload story. Please try again.');
     }
   });
