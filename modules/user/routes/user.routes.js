@@ -23,6 +23,9 @@ const {
   getUserProfileController,
   getUserPostsController,
   getUserReelsController,
+  getMeController,
+  getMyPostsController,
+  getMyReelsController,
 } = require('../controllers/user.controller');
 
 // PATCH /api/users/profile
@@ -62,6 +65,18 @@ router.get('/suggestions', auth, getSuggestionsController);
 // ── Saved content ─────────────────────────────────────────────────────────────
 router.get('/saved/posts', auth, getSavedPostsController);
 router.get('/saved/reels', auth, getSavedReelsController);
+
+// ── My own profile (Instagram-style: bio + posts + reels in one call) ────────
+// Must stay above /:id to prevent Express matching 'me' as :id
+
+// GET /api/users/me — profile + first page of posts + first page of reels
+router.get('/me', auth, getMeController);
+
+// GET /api/users/me/posts — paginated own posts
+router.get('/me/posts', auth, getMyPostsController);
+
+// GET /api/users/me/reels — paginated own reels
+router.get('/me/reels', auth, getMyReelsController);
 
 // ── Public profile viewing ────────────────────────────────────────────────────
 // These must stay above /:id/follow to prevent Express matching 'posts'/'reels' as :id

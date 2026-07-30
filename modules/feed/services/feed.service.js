@@ -170,4 +170,100 @@ const getFeed = async (userId, { page = 1, limit = 20 } = {}) => {
   return { feed: paginated, page, limit, hasMore: offset + limit < items.length };
 };
 
-module.exports = { getFeed };
+// ── Home feed — own posts/reels first (page 1), then following, chronological ──
+const HOME_FETCH_MULTIPLIER = 3;
+
+const formatFeedPost = (post, likeCounts, saveCounts, viewerLiked, viewerSaved) => ({
+  type: 'post',
+  id: post.id,
+  caption: post.caption,
+  createdAt: post.createdAt,
+  author: { id: post.author.id, username: post.author.username, fullName: post.author.fullName, profileImage: post.author.profileImage || null },
+  media: post.media.sort((a, b) => a.order - b.order).map((m) => m.mediaUrl),
+  hashtags: post.hashtags.map((h) => h.name),
+  mentions: post.mentions.map((m) => ({ id: m.mentionedUser.id, username: m.mentionedUser.username, profileImage: m.mentionedUser.profileImage || null })),
+  likeCount: likeCounts[post.id] || 0,
+  saveCount: saveCounts[post.id] || 0,
+  hasLiked: viewerLiked.has(post.id),
+  hasSaved: viewerSaved.has(post.id),
+});
+
+const formatFeedReel = (reel, likeCounts, saveCounts, viewerLiked, viewerSaved) => ({
+  type: 'reel',
+  id: reel.id,
+  videoUrl: reel.videoUrl,
+  thumbnailUrl: reel.thumbnailUrl || null,
+  caption: reel.caption,
+  createdAt: reel.createdAt,
+  author: { id: reel.author.id, username: reel.author.username, fullName: reel.author.fullName, profileImage: reel.author.profileImage || null },
+  hashtags: reel.hashtags.map((h) => h.name),
+  mentions: reel.mentions.map((m) => ({ id: m.mentionedUser.id, username: m.mentionedUser.username, profileImage: m.mentionedUser.profileImage || null })),
+  likeCount: likeCounts[reel.id] || 0,
+  saveCount: saveCounts[reel.id] || 0,
+  hasLiked: viewerLiked.has(reel.id),
+  hasSaved: viewerSaved.has(reel.id),
+});
+
+const attachHomeStats = async (viewerId, posts, reels) => {
+  const allIds = [...posts.map((p) => p.id), ...reels.map((r) => r.id)];
+  if (allIds.length === 0) return [];
+
+  const [likeRows, saveRows, vLikeRows, vSaveRows] = await Promise.all([
+    Like.findAll({ where: { contentId: { [Op.in]: allIds } }, attributes: ['contentId'], raw: true }),
+    Save.findAll({ where: { contentId: { [Op.in]: allIds } }, attributes: ['contentId'], raw: true }),
+    Like.findAll({ where: { userId: viewerId, contentId: { [Op.in]: allIds } }, attributes: ['contentId'], raw: true }),
+    Save.findAll({ where: { userId: viewerId, contentId: { [Op.in]: allIds } }, attributes: ['contentId'], raw: true }),
+  ]);
+
+  const tally = (rows) => rows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const likeCounts = tally(likeRows);
+  const saveCounts = tally(saveRows);
+  const viewerLiked = new Set(vLikeRows.map((r) => r.contentId));
+  const viewerSaved = new Set(vSaveRows.map((r) => r.contentId));
+
+  const items = [
+    ...posts.map((p) => formatFeedPost(p, likeCounts, saveCounts, viewerLiked, viewerSaved)),
+    ...reels.map((r) => formatFeedReel(r, likeCounts, saveCounts, viewerLiked, viewerSaved)),
+  ];
+  items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return items;
+};
+
+const getHomeFeed = async (userId, { page = 1, limit = 10 } = {}) => {
+  page = Math.max(1, page);
+  limit = Math.max(1, limit);
+
+  // ── Page 1: the viewer's own recent posts/reels ──────────────────────────────
+  if (page === 1) {
+    const [posts, reels] = await Promise.all([
+      Post.findAll({ where: { userId }, include: postIncludes, order: [['createdAt', 'DESC']], limit }),
+      Reel.findAll({ where: { userId }, include: reelIncludes, order: [['createdAt', 'DESC']], limit }),
+    ]);
+    const items = (await attachHomeStats(userId, posts, reels)).slice(0, limit).map((item) => ({ ...item, isOwn: true }));
+
+    const followingCount = await Follow.count({ where: { followerId: userId, status: 'accepted' } });
+
+    return { feed: items, page, limit, hasMore: followingCount > 0 };
+  }
+
+  // ── Page 2+: chronological posts/reels from followed accounts ────────────────
+  const followingRows = await Follow.findAll({ where: { followerId: userId, status: 'accepted' }, attributes: ['followingId'], raw: true });
+  const followingIds = followingRows.map((f) => f.followingId);
+  if (followingIds.length === 0) return { feed: [], page, limit, hasMore: false };
+
+  const offset = (page - 2) * limit;
+  const fetchLimit = offset + limit * HOME_FETCH_MULTIPLIER;
+  const where = { userId: { [Op.in]: followingIds }, isPrivate: false };
+
+  const [posts, reels] = await Promise.all([
+    Post.findAll({ where, include: postIncludes, order: [['createdAt', 'DESC']], limit: fetchLimit }),
+    Reel.findAll({ where, include: reelIncludes, order: [['createdAt', 'DESC']], limit: fetchLimit }),
+  ]);
+
+  const items = await attachHomeStats(userId, posts, reels);
+  const paginated = items.slice(offset, offset + limit).map((item) => ({ ...item, isOwn: false }));
+
+  return { feed: paginated, page, limit, hasMore: items.length > offset + limit };
+};
+
+module.exports = { getFeed, getHomeFeed };

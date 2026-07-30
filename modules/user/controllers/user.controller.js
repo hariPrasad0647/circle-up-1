@@ -14,6 +14,7 @@ const {
   getUserProfile,
   getUserPosts,
   getUserReels,
+  getMyProfile,
 } = require('../services/user.service');
 const { getSavedPosts, getSavedReels } = require('../../post/services/interaction.service');
 const { success, error } = require('../../../utils/response');
@@ -170,6 +171,42 @@ const getSavedReelsController = async (req, res, next) => {
   }
 };
 
+const getMeController = async (req, res, next) => {
+  try {
+    const postLimit = parseInt(req.query.postLimit) || 12;
+    const reelLimit = parseInt(req.query.reelLimit) || 12;
+    const profile = await getMyProfile(req.user.id, { postLimit, reelLimit });
+    return success(res, 200, 'Profile fetched', profile);
+  } catch (err) {
+    if (err.status) return error(res, err.status, err.message);
+    next(err);
+  }
+};
+
+const getMyPostsController = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const result = await getUserPosts(req.user.id, req.user.id, { page, limit });
+    return success(res, 200, 'Posts fetched', result);
+  } catch (err) {
+    if (err.status) return error(res, err.status, err.message);
+    next(err);
+  }
+};
+
+const getMyReelsController = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const result = await getUserReels(req.user.id, req.user.id, { page, limit });
+    return success(res, 200, 'Reels fetched', result);
+  } catch (err) {
+    if (err.status) return error(res, err.status, err.message);
+    next(err);
+  }
+};
+
 const getUserProfileController = async (req, res, next) => {
   try {
     const profile = await getUserProfile(req.user.id, req.params.id);
@@ -228,4 +265,7 @@ module.exports = {
   getUserProfileController,
   getUserPostsController,
   getUserReelsController,
+  getMeController,
+  getMyPostsController,
+  getMyReelsController,
 };

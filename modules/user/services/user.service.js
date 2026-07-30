@@ -457,6 +457,20 @@ const getUserReels = async (viewerId, targetId, { page = 1, limit = 12 } = {}) =
   return { canView: true, reels: formatted, total: count, page, limit };
 };
 
+const getMyProfile = async (userId, { postLimit = 12, reelLimit = 12 } = {}) => {
+  const [profile, postsResult, reelsResult] = await Promise.all([
+    getUserProfile(userId, userId),
+    getUserPosts(userId, userId, { page: 1, limit: postLimit }),
+    getUserReels(userId, userId, { page: 1, limit: reelLimit }),
+  ]);
+
+  return {
+    ...profile,
+    posts: { items: postsResult.posts, total: postsResult.total, page: postsResult.page, limit: postsResult.limit },
+    reels: { items: reelsResult.reels, total: reelsResult.total, page: reelsResult.page, limit: reelsResult.limit },
+  };
+};
+
 module.exports = {
   updateProfile,
   saveInterests,
@@ -473,4 +487,5 @@ module.exports = {
   getUserProfile,
   getUserPosts,
   getUserReels,
+  getMyProfile,
 };

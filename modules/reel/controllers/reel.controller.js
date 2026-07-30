@@ -1,4 +1,4 @@
-const { createReel, getReelById, formatReel } = require('../services/reel.service');
+const { createReel, getReelById, formatReel, getPublicReelsFeed } = require('../services/reel.service');
 const {
   toggleLike,
   toggleSave,
@@ -16,6 +16,17 @@ const createReelController = async (req, res, next) => {
     const { videoUrl, thumbnailUrl } = req.reelUpload;
     const reel = await createReel(req.user.id, { caption, isPrivate }, videoUrl, thumbnailUrl);
     return success(res, 201, 'Reel created successfully', reel);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getPublicReelsController = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const result = await getPublicReelsFeed(req.user.id, { page, limit });
+    return success(res, 200, 'Reels fetched', result);
   } catch (err) {
     next(err);
   }
@@ -67,6 +78,7 @@ const shareReelController = async (req, res, next) => {
 
 module.exports = {
   createReelController,
+  getPublicReelsController,
   getReelController,
   likeReelController,
   saveReelController,

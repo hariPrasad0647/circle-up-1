@@ -8,6 +8,7 @@ const { createReelValidator } = require('../validators/reel.validator');
 const { commentTextValidator } = require('../../comment/validators/comment.validator');
 const {
   createReelController,
+  getPublicReelsController,
   getReelController,
   likeReelController,
   saveReelController,
@@ -26,6 +27,9 @@ const setReel = (req, res, next) => { req.contentType = 'reel'; next(); };
 
 // POST /api/reels
 router.post('/', auth, uploadReel, createReelValidator, validate, createReelController);
+
+// GET /api/reels/discover — reels from public accounts only (must precede /:id)
+router.get('/discover', auth, getPublicReelsController);
 
 // GET /api/reels/:id
 router.get('/:id', auth, getReelController);
