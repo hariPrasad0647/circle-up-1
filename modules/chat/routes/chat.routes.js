@@ -5,6 +5,7 @@ const { uploadChatMedia: uploadChatMediaMiddleware } = require('../../../middlew
 const {
   getConversations,
   getMessages,
+  searchChat,
   deleteMessage,
   uploadChatMedia,
   sendMessage,
@@ -14,6 +15,7 @@ router.use(auth);
 
 router.post('/send', uploadChatMediaMiddleware, sendMessage);
 router.get('/conversations', getConversations);
+router.get('/search', searchChat);
 router.get('/conversations/:conversationId/messages', getMessages);
 router.delete('/messages/:messageId', deleteMessage);
 router.post('/upload', uploadChatMediaMiddleware, uploadChatMedia);

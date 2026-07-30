@@ -190,6 +190,60 @@ const getMessages = async (conversationId, userId, { limit = 30, before } = {}) 
   return enrichWithStory(ordered);
 };
 
+const FRIEND_ATTRS = ['id', 'username', 'fullName', 'profileImage'];
+
+const searchChat = async (userId, query) => {
+  const q = `%${query}%`;
+  const lowerQuery = query.toLowerCase();
+
+  // Existing conversations whose other participant matches the query
+  const allConversations = await getConversations(userId);
+  const conversations = allConversations.filter(
+    (c) =>
+      c.otherUser &&
+      (c.otherUser.username?.toLowerCase().includes(lowerQuery) ||
+        c.otherUser.fullName?.toLowerCase().includes(lowerQuery))
+  );
+
+  // Mutual (accepted both ways) follows matching the query — lets the FE start a new chat
+  // with a friend even when no conversation exists yet
+  const myFollowing = await Follow.findAll({
+    where: { followerId: userId, status: 'accepted' },
+    attributes: ['followingId'],
+    raw: true,
+  });
+  const followingIds = myFollowing.map((f) => f.followingId);
+
+  let friends = [];
+  if (followingIds.length) {
+    const mutuals = await Follow.findAll({
+      where: { followerId: { [Op.in]: followingIds }, followingId: userId, status: 'accepted' },
+      include: [
+        {
+          model: User,
+          as: 'follower',
+          attributes: FRIEND_ATTRS,
+          where: {
+            [Op.or]: [{ username: { [Op.like]: q } }, { fullName: { [Op.like]: q } }],
+          },
+        },
+      ],
+    });
+    friends = mutuals.map((f) => f.follower);
+  }
+
+  // Tag each friend with their existing conversationId, if one already exists
+  const conversationByUserId = Object.fromEntries(
+    allConversations.filter((c) => c.otherUser).map((c) => [c.otherUser.id, c.conversationId])
+  );
+  const friendsWithConversation = friends.map((f) => ({
+    ...f.toJSON(),
+    conversationId: conversationByUserId[f.id] || null,
+  }));
+
+  return { conversations, friends: friendsWithConversation };
+};
+
 const markAsRead = async (conversationId, userId) => {
   await ConversationParticipant.update(
     { lastReadAt: new Date() },
@@ -210,6 +264,7 @@ module.exports = {
   saveMessage,
   getConversations,
   getMessages,
+  searchChat,
   markAsRead,
   deleteMessage,
 };
