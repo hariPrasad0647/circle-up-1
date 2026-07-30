@@ -27,6 +27,18 @@ const getMessages = async (req, res, next) => {
   }
 };
 
+const searchChat = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    if (!q || !q.trim()) return error(res, 400, 'Query parameter q is required');
+
+    const results = await chatService.searchChat(req.user.id, q.trim());
+    return success(res, 200, 'Search results fetched', results);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const deleteMessage = async (req, res, next) => {
   try {
     const { messageId } = req.params;
@@ -82,4 +94,4 @@ const sendMessage = async (req, res, next) => {
   }
 };
 
-module.exports = { getConversations, getMessages, deleteMessage, uploadChatMedia, sendMessage };
+module.exports = { getConversations, getMessages, searchChat, deleteMessage, uploadChatMedia, sendMessage };

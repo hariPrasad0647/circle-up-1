@@ -339,6 +339,42 @@ const getUserProfile = async (viewerId, targetId) => {
   };
 };
 
+const searchUsers = async (viewerId, query, { page = 1, limit = 20 } = {}) => {
+  const offset = (page - 1) * limit;
+  const q = `%${query}%`;
+
+  const { count, rows } = await User.findAndCountAll({
+    where: {
+      id: { [Op.ne]: viewerId },
+      [Op.or]: [{ username: { [Op.like]: q } }, { fullName: { [Op.like]: q } }],
+    },
+    attributes: ['id', 'username', 'fullName', 'profileImage', 'isPrivate'],
+    order: [['username', 'ASC']],
+    limit,
+    offset,
+  });
+
+  const userIds = rows.map((u) => u.id);
+  const followRows = userIds.length
+    ? await Follow.findAll({
+        where: { followerId: viewerId, followingId: { [Op.in]: userIds } },
+        attributes: ['followingId', 'status'],
+        raw: true,
+      })
+    : [];
+  const followStatusMap = Object.fromEntries(followRows.map((f) => [f.followingId, f.status]));
+
+  const users = rows.map((u) => {
+    const status = followStatusMap[u.id];
+    return {
+      ...u.toJSON(),
+      followStatus: status === 'accepted' ? 'following' : status === 'pending' ? 'pending' : 'none',
+    };
+  });
+
+  return { users, total: count, page, limit };
+};
+
 const getUserPosts = async (viewerId, targetId, { page = 1, limit = 12 } = {}) => {
   const target = await User.findByPk(targetId, { attributes: ['id', 'isPrivate'] });
   if (!target) throwErr(404, 'User not found');
@@ -485,6 +521,7 @@ module.exports = {
   getFriends,
   getSuggestions,
   getUserProfile,
+  searchUsers,
   getUserPosts,
   getUserReels,
   getMyProfile,

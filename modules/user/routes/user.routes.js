@@ -21,6 +21,7 @@ const {
   getSavedPostsController,
   getSavedReelsController,
   getUserProfileController,
+  searchUsersController,
   getUserPostsController,
   getUserReelsController,
   getMeController,
@@ -61,6 +62,9 @@ router.get('/followers', auth, getFollowersController);
 router.get('/following', auth, getFollowingController);
 router.get('/friends', auth, getFriendsController);
 router.get('/suggestions', auth, getSuggestionsController);
+
+// GET /api/users/search?q=...
+router.get('/search', auth, searchUsersController);
 
 // ── Saved content ─────────────────────────────────────────────────────────────
 router.get('/saved/posts', auth, getSavedPostsController);
