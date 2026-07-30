@@ -142,4 +142,68 @@ const uploadStory = (req, res, next) => {
   });
 };
 
-module.exports = { uploadProfileImage, uploadPostImages, uploadReel, uploadChatMedia, uploadStory };
+// ── Unified content (post images OR reel video+thumbnail) ────────────────────
+
+const uploadContent = (req, res, next) => {
+  reelUpload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'video', maxCount: 1 },
+    { name: 'thumbnail', maxCount: 1 },
+  ])(req, res, async (err) => {
+    if (err) return handleMulterError(err, res, true);
+
+    const files = req.files || {};
+    const hasImages = files.images && files.images.length > 0;
+    const hasVideo = files.video && files.video.length > 0;
+
+    if (hasImages && hasVideo) {
+      return error(res, 400, 'Send either images or a video, not both');
+    }
+    if (!hasImages && !hasVideo) return next();
+
+    try {
+      const timestamp = Date.now();
+
+      if (hasVideo) {
+        const videoFile = files.video[0];
+        const videoExt = path.extname(videoFile.originalname).toLowerCase();
+        const videoPath = `reels/videos/${req.user.id}_${timestamp}${videoExt}`;
+
+        const thumbFile = files.thumbnail ? files.thumbnail[0] : null;
+        const thumbPath = thumbFile
+          ? `reels/thumbnails/${req.user.id}_${timestamp}${path.extname(thumbFile.originalname).toLowerCase()}`
+          : null;
+
+        const [videoUrl, thumbnailUrl] = await Promise.all([
+          uploadToBunny(videoFile.buffer, videoPath),
+          thumbFile ? uploadToBunny(thumbFile.buffer, thumbPath) : Promise.resolve(null),
+        ]);
+
+        req.contentType = 'reel';
+        req.reelUpload = { videoUrl, thumbnailUrl };
+      } else {
+        req.contentType = 'post';
+        req.cdnUrls = await Promise.all(
+          files.images.map((file, i) => {
+            const ext = path.extname(file.originalname).toLowerCase();
+            return uploadToBunny(file.buffer, `posts/${req.user.id}_${timestamp}_${i}${ext}`);
+          })
+        );
+      }
+
+      next();
+    } catch (uploadErr) {
+      logger.error('uploadContent failed:', uploadErr);
+      return error(res, 500, 'Failed to upload content. Please try again.');
+    }
+  });
+};
+
+module.exports = {
+  uploadProfileImage,
+  uploadPostImages,
+  uploadReel,
+  uploadChatMedia,
+  uploadStory,
+  uploadContent,
+};

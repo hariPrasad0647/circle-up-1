@@ -13,6 +13,7 @@ const reelRoutes = require('./modules/reel/routes/reel.routes');
 const chatRoutes = require('./modules/chat/routes/chat.routes');
 const feedRoutes = require('./modules/feed/routes/feed.routes');
 const storyRoutes = require('./modules/story/routes/story.routes');
+const contentRoutes = require('./modules/content/routes/content.routes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/reels', reelRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/feed', feedRoutes);
 app.use('/api/stories', storyRoutes);
+app.use('/api/content', contentRoutes);
 
 app.use(errorHandler);
 
