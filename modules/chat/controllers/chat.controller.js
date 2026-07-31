@@ -30,8 +30,6 @@ const getMessages = async (req, res, next) => {
 const searchChat = async (req, res, next) => {
   try {
     const { q } = req.query;
-    if (!q || !q.trim()) return error(res, 400, 'Query parameter q is required');
-
     const results = await chatService.searchChat(req.user.id, q.trim());
     return success(res, 200, 'Search results fetched', results);
   } catch (err) {
@@ -64,7 +62,6 @@ const sendMessage = async (req, res, next) => {
     const { recipientId, content } = req.body;
     const senderId = req.user.id;
 
-    if (!recipientId) return error(res, 400, 'recipientId is required');
     if (!content && !req.chatUpload) return error(res, 400, 'Message must have text or a file');
 
     const { allowed, status, reason } = await chatService.canMessageUser(senderId, recipientId);

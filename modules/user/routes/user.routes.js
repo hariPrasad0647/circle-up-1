@@ -3,6 +3,7 @@ const router = express.Router();
 
 const auth = require('../../../middleware/auth');
 const validate = require('../../../middleware/validate');
+const { uuidParam, requiredQuery } = require('../../../utils/paramValidators');
 const { uploadProfileImage } = require('../../../middleware/upload');
 const { updateProfileValidator, saveInterestsValidator } = require('../validators/user.validator');
 const {
@@ -51,10 +52,10 @@ router.get('/interests', auth, getInterestsController);
 router.get('/follow-requests', auth, getFollowRequestsController);
 
 // PATCH /api/users/follow-requests/:id/accept  — accept request from user :id
-router.patch('/follow-requests/:id/accept', auth, acceptFollowController);
+router.patch('/follow-requests/:id/accept', auth, uuidParam('id'), validate, acceptFollowController);
 
 // PATCH /api/users/follow-requests/:id/reject  — reject request from user :id
-router.patch('/follow-requests/:id/reject', auth, rejectFollowController);
+router.patch('/follow-requests/:id/reject', auth, uuidParam('id'), validate, rejectFollowController);
 
 // ── Follower / following / friends lists ──────────────────────────────────────
 
@@ -64,7 +65,7 @@ router.get('/friends', auth, getFriendsController);
 router.get('/suggestions', auth, getSuggestionsController);
 
 // GET /api/users/search?q=...
-router.get('/search', auth, searchUsersController);
+router.get('/search', auth, requiredQuery('q'), validate, searchUsersController);
 
 // ── Saved content ─────────────────────────────────────────────────────────────
 router.get('/saved/posts', auth, getSavedPostsController);
@@ -86,20 +87,20 @@ router.get('/me/reels', auth, getMyReelsController);
 // These must stay above /:id/follow to prevent Express matching 'posts'/'reels' as :id
 
 // GET /api/users/:id
-router.get('/:id', auth, getUserProfileController);
+router.get('/:id', auth, uuidParam('id'), validate, getUserProfileController);
 
 // GET /api/users/:id/posts
-router.get('/:id/posts', auth, getUserPostsController);
+router.get('/:id/posts', auth, uuidParam('id'), validate, getUserPostsController);
 
 // GET /api/users/:id/reels
-router.get('/:id/reels', auth, getUserReelsController);
+router.get('/:id/reels', auth, uuidParam('id'), validate, getUserReelsController);
 
 // ── Follow / unfollow a user ──────────────────────────────────────────────────
 
 // POST   /api/users/:id/follow
-router.post('/:id/follow', auth, followController);
+router.post('/:id/follow', auth, uuidParam('id'), validate, followController);
 
 // DELETE /api/users/:id/follow
-router.delete('/:id/follow', auth, unfollowController);
+router.delete('/:id/follow', auth, uuidParam('id'), validate, unfollowController);
 
 module.exports = router;

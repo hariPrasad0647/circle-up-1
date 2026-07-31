@@ -221,8 +221,6 @@ const getUserProfileController = async (req, res, next) => {
 const searchUsersController = async (req, res, next) => {
   try {
     const { q } = req.query;
-    if (!q || !q.trim()) return error(res, 400, 'Query parameter q is required');
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const result = await searchUsers(req.user.id, q.trim(), { page, limit });

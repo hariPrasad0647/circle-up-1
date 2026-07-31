@@ -17,10 +17,19 @@ const chatUpload = createUpload(
   parseInt(process.env.MAX_VIDEO_SIZE) || 104857600
 );
 
-const handleMulterError = (err, res, videoMode = false) => {
+const handleMulterError = (err, res, { videoMode = false, expectedFields = [] } = {}) => {
   if (err.code === 'LIMIT_FILE_SIZE') {
     const limit = videoMode ? '100MB' : '5MB';
     return error(res, 413, `File too large. Maximum allowed size is ${limit}`);
+  }
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    const expected = expectedFields.length
+      ? ` Expected field name${expectedFields.length > 1 ? 's' : ''}: ${expectedFields.map((f) => `"${f}"`).join(', ')}.`
+      : '';
+    return error(res, 400, `Unexpected form field "${err.field}".${expected}`);
+  }
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    return error(res, 400, 'Too many files uploaded');
   }
   return error(res, 400, err.message);
 };
@@ -29,7 +38,7 @@ const handleMulterError = (err, res, videoMode = false) => {
 
 const uploadProfileImage = (req, res, next) => {
   imageUpload.single('profileImage')(req, res, async (err) => {
-    if (err) return handleMulterError(err, res);
+    if (err) return handleMulterError(err, res, { expectedFields: ['profileImage'] });
     if (!req.file) return next();
     try {
       const ext = path.extname(req.file.originalname).toLowerCase();
@@ -47,7 +56,7 @@ const uploadProfileImage = (req, res, next) => {
 
 const uploadPostImages = (req, res, next) => {
   imageUpload.array('images', 10)(req, res, async (err) => {
-    if (err) return handleMulterError(err, res);
+    if (err) return handleMulterError(err, res, { expectedFields: ['images'] });
     if (!req.files || req.files.length === 0) return next();
     try {
       const timestamp = Date.now();
@@ -72,7 +81,7 @@ const uploadReel = (req, res, next) => {
     { name: 'video', maxCount: 1 },
     { name: 'thumbnail', maxCount: 1 },
   ])(req, res, async (err) => {
-    if (err) return handleMulterError(err, res, true);
+    if (err) return handleMulterError(err, res, { videoMode: true, expectedFields: ['video', 'thumbnail'] });
     if (!req.files || !req.files.video) return next();
 
     try {
@@ -104,7 +113,7 @@ const uploadReel = (req, res, next) => {
 
 const uploadChatMedia = (req, res, next) => {
   chatUpload.single('file')(req, res, async (err) => {
-    if (err) return handleMulterError(err, res, true);
+    if (err) return handleMulterError(err, res, { videoMode: true, expectedFields: ['file'] });
     if (!req.file) return next();
     try {
       const ext = path.extname(req.file.originalname).toLowerCase();
@@ -125,7 +134,7 @@ const uploadChatMedia = (req, res, next) => {
 
 const uploadStory = (req, res, next) => {
   chatUpload.single('file')(req, res, async (err) => {
-    if (err) return handleMulterError(err, res, true);
+    if (err) return handleMulterError(err, res, { videoMode: true, expectedFields: ['file'] });
     if (!req.file) return next();
     try {
       const ext = path.extname(req.file.originalname).toLowerCase();
@@ -150,7 +159,7 @@ const uploadContent = (req, res, next) => {
     { name: 'video', maxCount: 1 },
     { name: 'thumbnail', maxCount: 1 },
   ])(req, res, async (err) => {
-    if (err) return handleMulterError(err, res, true);
+    if (err) return handleMulterError(err, res, { videoMode: true, expectedFields: ['images', 'video', 'thumbnail'] });
 
     const files = req.files || {};
     const hasImages = files.images && files.images.length > 0;

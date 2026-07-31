@@ -64,9 +64,6 @@ const deleteStoryController = async (req, res, next) => {
 const reactToStoryController = async (req, res, next) => {
   try {
     const { emoji } = req.body;
-    if (!emoji || typeof emoji !== 'string' || emoji.trim().length === 0) {
-      return error(res, 400, 'emoji is required');
-    }
     const io = req.app.get('io');
     const result = await storyService.reactToStory(req.params.id, req.user.id, emoji.trim(), io);
     if (result.notFound) return error(res, 404, 'Story not found or has expired');
