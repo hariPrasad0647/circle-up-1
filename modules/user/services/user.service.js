@@ -423,6 +423,7 @@ const getUserPosts = async (viewerId, targetId, { page = 1, limit = 12 } = {}) =
   const viewerSavedSet = new Set(viewerSaveRows.map((r) => r.contentId));
 
   const formatted = posts.map((post) => ({
+    type: 'post',
     id: post.id,
     caption: post.caption,
     isPrivate: post.isPrivate,
@@ -487,6 +488,7 @@ const getUserReels = async (viewerId, targetId, { page = 1, limit = 12 } = {}) =
   const viewerSavedSet = new Set(viewerSaveRows.map((r) => r.contentId));
 
   const formatted = reels.map((reel) => ({
+    type: 'reel',
     id: reel.id,
     videoUrl: reel.videoUrl,
     thumbnailUrl: reel.thumbnailUrl || null,
