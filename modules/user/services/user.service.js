@@ -147,6 +147,36 @@ const getFollowing = async (userId) => {
   return rows.map((r) => r.following);
 };
 
+// ── Followers / following for an arbitrary profile (privacy-aware) ────────────
+
+const getUserFollowers = async (viewerId, targetId) => {
+  const target = await User.findByPk(targetId, { attributes: ['id', 'isPrivate'] });
+  if (!target) throwErr(404, 'User not found');
+
+  const allowed = await canViewContent(viewerId, target);
+  if (!allowed) return { canView: false, followers: [] };
+
+  const rows = await Follow.findAll({
+    where: { followingId: targetId, status: 'accepted' },
+    include: [{ model: User, as: 'follower', attributes: FOLLOWER_ATTRS }],
+  });
+  return { canView: true, followers: rows.map((r) => r.follower) };
+};
+
+const getUserFollowing = async (viewerId, targetId) => {
+  const target = await User.findByPk(targetId, { attributes: ['id', 'isPrivate'] });
+  if (!target) throwErr(404, 'User not found');
+
+  const allowed = await canViewContent(viewerId, target);
+  if (!allowed) return { canView: false, following: [] };
+
+  const rows = await Follow.findAll({
+    where: { followerId: targetId, status: 'accepted' },
+    include: [{ model: User, as: 'following', attributes: FOLLOWER_ATTRS }],
+  });
+  return { canView: true, following: rows.map((r) => r.following) };
+};
+
 const getFriends = async (userId) => {
   // Users I follow
   const myFollowing = await Follow.findAll({
@@ -537,6 +567,8 @@ module.exports = {
   getFollowRequests,
   getFollowers,
   getFollowing,
+  getUserFollowers,
+  getUserFollowing,
   getFriends,
   getSuggestions,
   getUserProfile,

@@ -9,6 +9,8 @@ const {
   getFollowRequests,
   getFollowers,
   getFollowing,
+  getUserFollowers,
+  getUserFollowing,
   getFriends,
   getSuggestions,
   getUserProfile,
@@ -208,6 +210,28 @@ const getMyReelsController = async (req, res, next) => {
   }
 };
 
+const getUserFollowersController = async (req, res, next) => {
+  try {
+    const result = await getUserFollowers(req.user.id, req.params.id);
+    if (!result.canView) return error(res, 403, 'This account is private');
+    return success(res, 200, 'Followers fetched', result);
+  } catch (err) {
+    if (err.status) return error(res, err.status, err.message);
+    next(err);
+  }
+};
+
+const getUserFollowingController = async (req, res, next) => {
+  try {
+    const result = await getUserFollowing(req.user.id, req.params.id);
+    if (!result.canView) return error(res, 403, 'This account is private');
+    return success(res, 200, 'Following fetched', result);
+  } catch (err) {
+    if (err.status) return error(res, err.status, err.message);
+    next(err);
+  }
+};
+
 const getUserProfileController = async (req, res, next) => {
   try {
     const profile = await getUserProfile(req.user.id, req.params.id);
@@ -276,6 +300,8 @@ module.exports = {
   getSavedPostsController,
   getSavedReelsController,
   getUserProfileController,
+  getUserFollowersController,
+  getUserFollowingController,
   searchUsersController,
   getUserPostsController,
   getUserReelsController,

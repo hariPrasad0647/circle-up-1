@@ -22,6 +22,8 @@ const {
   getSavedPostsController,
   getSavedReelsController,
   getUserProfileController,
+  getUserFollowersController,
+  getUserFollowingController,
   searchUsersController,
   getUserPostsController,
   getUserReelsController,
@@ -94,6 +96,12 @@ router.get('/:id/posts', auth, uuidParam('id'), validate, getUserPostsController
 
 // GET /api/users/:id/reels
 router.get('/:id/reels', auth, uuidParam('id'), validate, getUserReelsController);
+
+// GET /api/users/:id/followers
+router.get('/:id/followers', auth, uuidParam('id'), validate, getUserFollowersController);
+
+// GET /api/users/:id/following
+router.get('/:id/following', auth, uuidParam('id'), validate, getUserFollowingController);
 
 // ── Follow / unfollow a user ──────────────────────────────────────────────────
 
