@@ -11,6 +11,8 @@ const Reel = require('../../reel/models/reel.model');
 const ReelMention = require('../../reel/models/reel_mention.model');
 const Like = require('../../post/models/like.model');
 const Save = require('../../post/models/bookmark.model');
+const Share = require('../../post/models/share.model');
+const Comment = require('../../comment/models/comment.model');
 
 const FOLLOWER_ATTRS = ['id', 'username', 'fullName', 'profileImage'];
 
@@ -404,15 +406,19 @@ const getUserPosts = async (viewerId, targetId, { page = 1, limit = 12 } = {}) =
 
   const postIds = posts.map((p) => p.id);
 
-  const [likeRows, saveRows, viewerLikeRows, viewerSaveRows] = await Promise.all([
+  const [likeRows, saveRows, shareRows, commentRows, viewerLikeRows, viewerSaveRows] = await Promise.all([
     Like.findAll({ where: { contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
     Save.findAll({ where: { contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
+    Share.findAll({ where: { contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
+    Comment.findAll({ where: { contentType: 'post', contentId: { [Op.in]: postIds }, parentId: null, isDeleted: false }, attributes: ['contentId'], raw: true }),
     Like.findAll({ where: { userId: viewerId, contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
     Save.findAll({ where: { userId: viewerId, contentType: 'post', contentId: { [Op.in]: postIds } }, attributes: ['contentId'], raw: true }),
   ]);
 
   const likeCounts = likeRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
   const saveCounts = saveRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const shareCounts = shareRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const commentCounts = commentRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
   const viewerLikedSet = new Set(viewerLikeRows.map((r) => r.contentId));
   const viewerSavedSet = new Set(viewerSaveRows.map((r) => r.contentId));
 
@@ -427,6 +433,8 @@ const getUserPosts = async (viewerId, targetId, { page = 1, limit = 12 } = {}) =
     mentions: post.mentions.map((m) => ({ id: m.mentionedUser.id, username: m.mentionedUser.username, profileImage: m.mentionedUser.profileImage || null })),
     likeCount: likeCounts[post.id] || 0,
     saveCount: saveCounts[post.id] || 0,
+    shareCount: shareCounts[post.id] || 0,
+    commentCount: commentCounts[post.id] || 0,
     hasLiked: viewerLikedSet.has(post.id),
     hasSaved: viewerSavedSet.has(post.id),
   }));
@@ -462,15 +470,19 @@ const getUserReels = async (viewerId, targetId, { page = 1, limit = 12 } = {}) =
 
   const reelIds = reels.map((r) => r.id);
 
-  const [likeRows, saveRows, viewerLikeRows, viewerSaveRows] = await Promise.all([
+  const [likeRows, saveRows, shareRows, commentRows, viewerLikeRows, viewerSaveRows] = await Promise.all([
     Like.findAll({ where: { contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
     Save.findAll({ where: { contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
+    Share.findAll({ where: { contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
+    Comment.findAll({ where: { contentType: 'reel', contentId: { [Op.in]: reelIds }, parentId: null, isDeleted: false }, attributes: ['contentId'], raw: true }),
     Like.findAll({ where: { userId: viewerId, contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
     Save.findAll({ where: { userId: viewerId, contentType: 'reel', contentId: { [Op.in]: reelIds } }, attributes: ['contentId'], raw: true }),
   ]);
 
   const likeCounts = likeRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
   const saveCounts = saveRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const shareCounts = shareRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
+  const commentCounts = commentRows.reduce((m, r) => { m[r.contentId] = (m[r.contentId] || 0) + 1; return m; }, {});
   const viewerLikedSet = new Set(viewerLikeRows.map((r) => r.contentId));
   const viewerSavedSet = new Set(viewerSaveRows.map((r) => r.contentId));
 
@@ -486,6 +498,8 @@ const getUserReels = async (viewerId, targetId, { page = 1, limit = 12 } = {}) =
     mentions: reel.mentions.map((m) => ({ id: m.mentionedUser.id, username: m.mentionedUser.username, profileImage: m.mentionedUser.profileImage || null })),
     likeCount: likeCounts[reel.id] || 0,
     saveCount: saveCounts[reel.id] || 0,
+    shareCount: shareCounts[reel.id] || 0,
+    commentCount: commentCounts[reel.id] || 0,
     hasLiked: viewerLikedSet.has(reel.id),
     hasSaved: viewerSavedSet.has(reel.id),
   }));
