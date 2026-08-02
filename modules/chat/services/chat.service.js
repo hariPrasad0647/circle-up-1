@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op, fn, col, where: sequelizeWhere } = require('sequelize');
 const sequelize = require('../../../config/db');
 const Conversation = require('../models/conversation.model');
 const ConversationParticipant = require('../models/conversationParticipant.model');
@@ -193,8 +193,8 @@ const getMessages = async (conversationId, userId, { limit = 30, before } = {}) 
 const FRIEND_ATTRS = ['id', 'username', 'fullName', 'profileImage'];
 
 const searchChat = async (userId, query) => {
-  const q = `%${query}%`;
   const lowerQuery = query.toLowerCase();
+  const q = `%${lowerQuery}%`;
 
   // Existing conversations whose other participant matches the query
   const allConversations = await getConversations(userId);
@@ -224,7 +224,10 @@ const searchChat = async (userId, query) => {
           as: 'follower',
           attributes: FRIEND_ATTRS,
           where: {
-            [Op.or]: [{ username: { [Op.like]: q } }, { fullName: { [Op.like]: q } }],
+            [Op.or]: [
+              sequelizeWhere(fn('LOWER', col('follower.username')), { [Op.like]: q }),
+              sequelizeWhere(fn('LOWER', col('follower.fullName')), { [Op.like]: q }),
+            ],
           },
         },
       ],

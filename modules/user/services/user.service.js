@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op, fn, col, where: sequelizeWhere } = require('sequelize');
 const User = require('../models/user.model');
 const Interest = require('../models/interest.model');
 const Follow = require('../models/follow.model');
@@ -343,12 +343,15 @@ const getUserProfile = async (viewerId, targetId) => {
 
 const searchUsers = async (viewerId, query, { page = 1, limit = 20 } = {}) => {
   const offset = (page - 1) * limit;
-  const q = `%${query}%`;
+  const q = `%${query.toLowerCase()}%`;
 
   const { count, rows } = await User.findAndCountAll({
     where: {
       id: { [Op.ne]: viewerId },
-      [Op.or]: [{ username: { [Op.like]: q } }, { fullName: { [Op.like]: q } }],
+      [Op.or]: [
+        sequelizeWhere(fn('LOWER', col('username')), { [Op.like]: q }),
+        sequelizeWhere(fn('LOWER', col('fullName')), { [Op.like]: q }),
+      ],
     },
     attributes: ['id', 'username', 'fullName', 'profileImage', 'isPrivate'],
     order: [['username', 'ASC']],
