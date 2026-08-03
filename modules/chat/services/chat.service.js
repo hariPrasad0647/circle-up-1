@@ -140,6 +140,7 @@ const getConversations = async (userId) => {
 
   const lastMessageMap = {};
   for (const msg of allMessages) {
+    if (msg.isDeleted) continue;
     if (!lastMessageMap[msg.conversationId]) {
       lastMessageMap[msg.conversationId] = msg;
     }
@@ -148,11 +149,7 @@ const getConversations = async (userId) => {
   return conversationIds
     .map((convId) => {
       const raw = lastMessageMap[convId] || null;
-      const lastMessage = raw
-        ? raw.isDeleted
-          ? { ...raw.toJSON(), content: null, media: [] }
-          : raw.toJSON()
-        : null;
+      const lastMessage = raw ? raw.toJSON() : null;
       return {
         conversationId: convId,
         otherUser: otherUserMap[convId] || null,
