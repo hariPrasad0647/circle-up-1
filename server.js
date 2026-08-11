@@ -22,6 +22,15 @@ require('./modules/comment/models/comment_like.model');
 
 const PORT = process.env.PORT || 5000;
 
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception:', err.stack || err);
+  process.exit(1);
+});
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
