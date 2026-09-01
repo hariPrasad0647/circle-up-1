@@ -17,7 +17,7 @@ const User = sequelize.define(
       allowNull: false,
       validate: { isEmail: true },
     },
-    phone: { type: DataTypes.STRING, allowNull: false },
+    phone: { type: DataTypes.STRING, allowNull: true },
     isVerified: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     isPrivate: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     profileImage: { type: DataTypes.STRING, allowNull: true },
